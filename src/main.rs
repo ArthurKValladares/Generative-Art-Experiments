@@ -1,3 +1,6 @@
+use easy_ash::ApplicationInfo;
+
 fn main() {
-    println!("Hello, world!");
+    let app_info = ApplicationInfo::default();
+    println!("App info: {:#?}", app_info);
 }
