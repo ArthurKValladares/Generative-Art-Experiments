@@ -1,4 +1,4 @@
-use easy_ash::{ApplicationInfo, Entry};
+use easy_ash::{ApplicationInfo, Entry, InstanceInfo};
 use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowBuilder};
 
 fn main() {
@@ -17,7 +17,9 @@ fn main() {
         .unwrap();
 
     let app_info = ApplicationInfo::default().with_application_name(app_title);
-    let entry = Entry::new(app_info).expect("Could not create Easy-Ash instance");
+    let instance_info = InstanceInfo::default();
+    let entry =
+        Entry::new(app_info, instance_info, &window).expect("Could not create Easy-Ash instance");
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
