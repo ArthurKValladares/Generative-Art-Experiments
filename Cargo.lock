@@ -263,7 +263,7 @@ dependencies = [
  "ash",
  "ash-window",
  "easy-versions",
- "raw-window-handle 0.4.3",
+ "raw-window-handle 0.3.4",
 ]
 
 [[package]]
