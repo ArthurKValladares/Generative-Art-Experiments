@@ -264,6 +264,7 @@ dependencies = [
  "ash-window",
  "easy-versions",
  "raw-window-handle 0.3.4",
+ "thiserror",
 ]
 
 [[package]]

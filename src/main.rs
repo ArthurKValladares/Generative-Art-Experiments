@@ -1,4 +1,4 @@
-use easy_ash::{ApplicationInfo, Entry, InstanceInfo, SurfaceBuilder};
+use easy_ash::{ApplicationInfo, Device, Entry, InstanceInfo, SurfaceBuilder};
 use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowBuilder};
 
 fn main() {
@@ -20,7 +20,9 @@ fn main() {
     let instance_info = InstanceInfo::default();
     let entry =
         Entry::new(app_info, instance_info, &window).expect("Could not create Easy-Ash instance");
-    let surface_builder = SurfaceBuilder::new(&entry, &window);
+    let surface_builder =
+        SurfaceBuilder::new(&entry, &window).expect("Could not create Easy-Ash SurfaceBuilder");
+    let device = Device::new(&entry, &surface_builder).expect("Could not create Easy-Ash Device");
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
