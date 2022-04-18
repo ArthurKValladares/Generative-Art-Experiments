@@ -15,14 +15,19 @@ fn main() {
         ))
         .build(&event_loop)
         .unwrap();
+    let window_size = window.inner_size();
 
     let app_info = ApplicationInfo::default().with_application_name(app_title);
     let instance_info = InstanceInfo::default();
     let entry =
         Entry::new(app_info, instance_info, &window).expect("Could not create Easy-Ash instance");
     let surface_builder =
-        SurfaceBuilder::new(&entry, &window).expect("Could not create Easy-Ash SurfaceBuilder");
+        SurfaceBuilder::new(&entry, &window, window_size.width, window_size.height)
+            .expect("Could not create Easy-Ash SurfaceBuilder");
     let device = Device::new(&entry, &surface_builder).expect("Could not create Easy-Ash Device");
+    let surface = surface_builder
+        .build(&device)
+        .expect("Could not create Easy-Ash Surface");
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
