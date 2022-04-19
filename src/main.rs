@@ -1,4 +1,4 @@
-use easy_ash::{ApplicationInfo, Device, Entry, InstanceInfo, SurfaceBuilder};
+use easy_ash::{ApplicationInfo, Device, Entry, InstanceInfo, SurfaceBuilder, Swapchain};
 use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowBuilder};
 
 fn main() {
@@ -28,6 +28,7 @@ fn main() {
     let surface = surface_builder
         .build(&device)
         .expect("Could not create Easy-Ash Surface");
+    let swapchain = Swapchain::new(&entry, &device, &surface);
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
