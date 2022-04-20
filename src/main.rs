@@ -17,10 +17,12 @@ fn main() {
         .unwrap();
     let window_size = window.inner_size();
 
-    let app_info = ApplicationInfo::default().with_application_name(app_title);
-    let instance_info = InstanceInfo::default();
-    let entry =
-        Entry::new(app_info, instance_info, &window).expect("Could not create Easy-Ash instance");
+    let entry = Entry::new(
+        ApplicationInfo::default().with_application_name(app_title),
+        InstanceInfo::default(),
+        &window,
+    )
+    .expect("Could not create Easy-Ash instance");
     let surface = Surface::new(&entry, &window, window_size.width, window_size.height)
         .expect("Could not create Easy-Ash Surface");
     let device = Device::new(&entry, &surface).expect("Could not create Easy-Ash Device");
