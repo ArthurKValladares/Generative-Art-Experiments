@@ -34,7 +34,8 @@ fn main() {
         surface,
         window_size.width,
         window_size.height,
-    );
+    )
+    .expect("Could not create swapchain");
     let depth_image = Image::new(
         &device,
         ImageResolution {
