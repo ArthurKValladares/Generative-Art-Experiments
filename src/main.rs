@@ -1,4 +1,7 @@
-use easy_ash::{ApplicationInfo, Context, Device, Entry, InstanceInfo, Surface, Swapchain};
+use easy_ash::{
+    ApplicationInfo, Context, Device, Entry, Image, ImageResolution, ImageType, InstanceInfo,
+    Surface, Swapchain,
+};
 use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowBuilder};
 
 fn main() {
@@ -23,10 +26,25 @@ fn main() {
         &window,
     )
     .expect("Could not create Easy-Ash instance");
-    let surface = Surface::new(&entry, &window, window_size.width, window_size.height)
-        .expect("Could not create Easy-Ash Surface");
+    let surface = Surface::new(&entry, &window).expect("Could not create Easy-Ash Surface");
     let device = Device::new(&entry, &surface).expect("Could not create Easy-Ash Device");
-    let swapchain = Swapchain::new(&entry, &device, surface);
+    let swapchain = Swapchain::new(
+        &entry,
+        &device,
+        surface,
+        window_size.width,
+        window_size.height,
+    );
+    let depth_image = Image::new(
+        &device,
+        ImageResolution {
+            width: swapchain.width(),
+            height: swapchain.height(),
+            depth: 1,
+        },
+        ImageType::Depth,
+    )
+    .expect("Could not create image");
 
     let setup_context = Context::new(&device).expect("Could not create setup context");
     let draw_context = Context::new(&device).expect("Could not create draw context");
