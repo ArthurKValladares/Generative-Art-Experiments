@@ -1,8 +1,15 @@
 use easy_ash::{
-    ApplicationInfo, Context, Device, Entry, Image, ImageResolution, ImageType, InstanceInfo,
-    Surface, Swapchain,
+    ApplicationInfo, Buffer, BufferType, Context, Device, Entry, Image, ImageResolution, ImageType,
+    InstanceInfo, Surface, Swapchain,
 };
 use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowBuilder};
+
+// TODO: This will be defined in the shader later
+#[derive(Clone, Debug, Copy)]
+struct Vertex {
+    pos: [f32; 4],
+    color: [f32; 4],
+}
 
 fn main() {
     let app_title = "Generative Art";
@@ -20,6 +27,7 @@ fn main() {
         .unwrap();
     let window_size = window.inner_size();
 
+    // TODO: Does `Entry` warrant being it's own struct? Should I just fold it into `Device`?
     let entry = Entry::new(
         ApplicationInfo::default().with_application_name(app_title),
         InstanceInfo::default(),
@@ -36,19 +44,30 @@ fn main() {
         window_size.height,
     )
     .expect("Could not create swapchain");
-    let depth_image = Image::new(
-        &device,
-        ImageResolution {
-            width: swapchain.width(),
-            height: swapchain.height(),
-            depth: 1,
-        },
-        ImageType::Depth,
-    )
-    .expect("Could not create image");
 
     let setup_context = Context::new(&device).expect("Could not create setup context");
     let draw_context = Context::new(&device).expect("Could not create draw context");
+
+    let index_buffer_data = [0u32, 1, 2];
+    let index_buffer = Buffer::from_data(&device, BufferType::Index, &index_buffer_data)
+        .expect("Could not create index buffer");
+
+    let vertex_buffer_data = [
+        Vertex {
+            pos: [-1.0, 1.0, 0.0, 1.0],
+            color: [0.0, 1.0, 0.0, 1.0],
+        },
+        Vertex {
+            pos: [1.0, 1.0, 0.0, 1.0],
+            color: [0.0, 0.0, 1.0, 1.0],
+        },
+        Vertex {
+            pos: [0.0, -1.0, 0.0, 1.0],
+            color: [1.0, 0.0, 0.0, 1.0],
+        },
+    ];
+    let vertex_buffer = Buffer::from_data(&device, BufferType::Storage, &vertex_buffer_data)
+        .expect("Could not create vertex buffer");
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
