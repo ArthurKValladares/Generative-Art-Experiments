@@ -8,3 +8,6 @@ edition = "2021"
 [dependencies]
 winit = "0.26"
 easy-ash = { path =  "./easy-ash" }
+
+[build-dependencies]
+rust-shader-tools = { git = "https://github.com/ArthurKValladares/Rust-Shader-Tools" }
