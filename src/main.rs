@@ -1,6 +1,6 @@
 use easy_ash::{
     ApplicationInfo, Buffer, BufferType, Context, Device, Entry, Image, ImageResolution, ImageType,
-    InstanceInfo, Surface, Swapchain,
+    InstanceInfo, Shader, Surface, Swapchain,
 };
 use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowBuilder};
 
@@ -44,9 +44,13 @@ fn main() {
         window_size.height,
     )
     .expect("Could not create swapchain");
-
     let setup_context = Context::new(&device).expect("Could not create setup context");
     let draw_context = Context::new(&device).expect("Could not create draw context");
+
+    let vertex_shader = Shader::new(&device, "src/shaders/triangle_vert.spv")
+        .expect("Could not create vertex shader");
+    let fragment_shader = Shader::new(&device, "src/shaders/triangle_frag.spv")
+        .expect("Could not create fragment shader");
 
     let index_buffer_data = [0u32, 1, 2];
     let index_buffer = Buffer::from_data(&device, BufferType::Index, &index_buffer_data)
