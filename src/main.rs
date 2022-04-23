@@ -1,6 +1,6 @@
 use easy_ash::{
-    ApplicationInfo, Buffer, BufferType, Context, Device, Entry, Image, ImageResolution, ImageType,
-    InstanceInfo, Shader, Surface, Swapchain,
+    ApiVersion, ApplicationInfo, Buffer, BufferType, Context, Device, Entry, Image,
+    ImageResolution, ImageType, InstanceInfo, Shader, Surface, Swapchain,
 };
 use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowBuilder};
 
@@ -29,7 +29,9 @@ fn main() {
 
     // TODO: Does `Entry` warrant being it's own struct? Should I just fold it into `Device`?
     let entry = Entry::new(
-        ApplicationInfo::default().with_application_name(app_title),
+        ApplicationInfo::default()
+            .with_application_name(app_title)
+            .with_api_version(ApiVersion::new(0, 1, 2, 0)),
         InstanceInfo::default(),
         &window,
     )
