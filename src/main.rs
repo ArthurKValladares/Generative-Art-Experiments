@@ -1,7 +1,8 @@
 use easy_ash::{
-    ApiVersion, ApplicationInfo, BindingDesc, Buffer, BufferType, Context, DescriptorPool,
-    DescriptorSet, DescriptorType, Device, Entry, GraphicsPipeline, GraphicsProgram, Image,
-    ImageResolution, ImageType, InstanceInfo, RenderPass, Shader, ShaderStage, Surface, Swapchain,
+    ApiVersion, ApplicationInfo, BindingDesc, Buffer, BufferType, Context, DescriptorBufferInfo,
+    DescriptorPool, DescriptorSet, DescriptorType, Device, Entry, GraphicsPipeline,
+    GraphicsProgram, Image, ImageResolution, ImageType, InstanceInfo, RenderPass, Shader,
+    ShaderStage, Surface, Swapchain,
 };
 use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowBuilder};
 
@@ -63,18 +64,6 @@ fn main() {
         GraphicsPipeline::new(&device, &swapchain, &render_pass, &graphics_program)
             .expect("Could not create graphics pipeline");
 
-    let descriptor_pool = DescriptorPool::new(&device).expect("Could not create descriptor pool");
-    let global_descriptor_set = DescriptorSet::new(
-        &device,
-        &descriptor_pool,
-        &[BindingDesc::new(
-            DescriptorType::StorageBuffer,
-            1,
-            ShaderStage::Vertex,
-        )],
-    )
-    .expect("Could not create descriptor set");
-
     let index_buffer_data = [0u32, 1, 2];
     let index_buffer = Buffer::from_data(&device, BufferType::Index, &index_buffer_data)
         .expect("Could not create index buffer");
@@ -95,6 +84,18 @@ fn main() {
     ];
     let vertex_buffer = Buffer::from_data(&device, BufferType::Storage, &vertex_buffer_data)
         .expect("Could not create vertex buffer");
+
+    let descriptor_pool = DescriptorPool::new(&device).expect("Could not create descriptor pool");
+    let global_descriptor_set = DescriptorSet::new(
+        &device,
+        &descriptor_pool,
+        &[BindingDesc::new(
+            DescriptorType::StorageBuffer(DescriptorBufferInfo::new(&vertex_buffer, None, None)),
+            1,
+            ShaderStage::Vertex,
+        )],
+    )
+    .expect("Could not create descriptor set");
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
