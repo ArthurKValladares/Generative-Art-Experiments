@@ -1,6 +1,6 @@
 use easy_ash::{
     ApiVersion, ApplicationInfo, Buffer, BufferType, Context, Device, Entry, Image,
-    ImageResolution, ImageType, InstanceInfo, Shader, Surface, Swapchain,
+    ImageResolution, ImageType, InstanceInfo, RenderPass, Shader, Surface, Swapchain,
 };
 use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowBuilder};
 
@@ -48,6 +48,8 @@ fn main() {
     .expect("Could not create swapchain");
     let setup_context = Context::new(&device).expect("Could not create setup context");
     let draw_context = Context::new(&device).expect("Could not create draw context");
+
+    let render_pass = RenderPass::new(&device, &swapchain).expect("Could not create RenderPass");
 
     let vertex_shader = Shader::new(&device, "src/shaders/triangle_vert.spv")
         .expect("Could not create vertex shader");
