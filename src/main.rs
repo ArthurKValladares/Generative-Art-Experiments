@@ -1,7 +1,7 @@
 use easy_ash::{
-    ApiVersion, ApplicationInfo, Buffer, BufferType, Context, Device, Entry, GraphicsPipeline,
-    GraphicsProgram, Image, ImageResolution, ImageType, InstanceInfo, RenderPass, Shader, Surface,
-    Swapchain,
+    ApiVersion, ApplicationInfo, BindingDesc, Buffer, BufferType, Context, DescriptorPool,
+    DescriptorSet, DescriptorType, Device, Entry, GraphicsPipeline, GraphicsProgram, Image,
+    ImageResolution, ImageType, InstanceInfo, RenderPass, Shader, ShaderStage, Surface, Swapchain,
 };
 use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowBuilder};
 
@@ -62,6 +62,18 @@ fn main() {
     let graphics_pipeline =
         GraphicsPipeline::new(&device, &swapchain, &render_pass, &graphics_program)
             .expect("Could not create graphics pipeline");
+
+    let descriptor_pool = DescriptorPool::new(&device).expect("Could not create descriptor pool");
+    let global_descriptor_set = DescriptorSet::new(
+        &device,
+        &descriptor_pool,
+        &[BindingDesc::new(
+            DescriptorType::StorageBuffer,
+            1,
+            ShaderStage::Vertex,
+        )],
+    )
+    .expect("Could not create descriptor set");
 
     let index_buffer_data = [0u32, 1, 2];
     let index_buffer = Buffer::from_data(&device, BufferType::Index, &index_buffer_data)
