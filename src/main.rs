@@ -1,6 +1,7 @@
 use easy_ash::{
-    ApiVersion, ApplicationInfo, Buffer, BufferType, Context, Device, Entry, Image,
-    ImageResolution, ImageType, InstanceInfo, RenderPass, Shader, Surface, Swapchain,
+    ApiVersion, ApplicationInfo, Buffer, BufferType, Context, Device, Entry, GraphicsPipeline,
+    GraphicsProgram, Image, ImageResolution, ImageType, InstanceInfo, RenderPass, Shader, Surface,
+    Swapchain,
 };
 use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowBuilder};
 
@@ -51,10 +52,16 @@ fn main() {
 
     let render_pass = RenderPass::new(&device, &swapchain).expect("Could not create RenderPass");
 
-    let vertex_shader = Shader::new(&device, "src/shaders/triangle_vert.spv")
-        .expect("Could not create vertex shader");
-    let fragment_shader = Shader::new(&device, "src/shaders/triangle_frag.spv")
-        .expect("Could not create fragment shader");
+    let graphics_program = GraphicsProgram::new(
+        Shader::new(&device, "src/shaders/triangle_vert.spv")
+            .expect("Could not create vertex shader"),
+        Shader::new(&device, "src/shaders/triangle_frag.spv")
+            .expect("Could not create fragment shader"),
+    );
+
+    let graphics_pipeline =
+        GraphicsPipeline::new(&device, &swapchain, &render_pass, &graphics_program)
+            .expect("Could not create graphics pipeline");
 
     let index_buffer_data = [0u32, 1, 2];
     let index_buffer = Buffer::from_data(&device, BufferType::Index, &index_buffer_data)
