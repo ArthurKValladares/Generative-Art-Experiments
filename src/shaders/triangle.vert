@@ -1,11 +1,21 @@
 #version 450
 
-layout (location = 0) in vec4 pos;
-layout (location = 1) in vec4 color;
+struct Vertex
+{
+	vec4 pos;
+    vec4 col;
+};
+
+layout(set = 0, binding = 0) readonly buffer Vertices
+{
+	Vertex vertices[];
+};
 
 layout (location = 0) out vec4 o_color;
 
 void main() {
-    o_color = color;
-    gl_Position = pos;
+    Vertex v=vertices[gl_VertexIndex];
+
+    o_color = v.col;
+    gl_Position = v.pos;
 }

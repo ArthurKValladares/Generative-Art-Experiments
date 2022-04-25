@@ -60,10 +60,6 @@ fn main() {
             .expect("Could not create fragment shader"),
     );
 
-    let graphics_pipeline =
-        GraphicsPipeline::new(&device, &swapchain, &render_pass, &graphics_program)
-            .expect("Could not create graphics pipeline");
-
     let index_buffer_data = [0u32, 1, 2];
     let index_buffer = Buffer::from_data(&device, BufferType::Index, &index_buffer_data)
         .expect("Could not create index buffer");
@@ -97,6 +93,15 @@ fn main() {
     )
     .expect("Could not create descriptor set");
     global_descriptor_set.update(&device);
+
+    let graphics_pipeline = GraphicsPipeline::new(
+        &device,
+        &swapchain,
+        &render_pass,
+        &graphics_program,
+        &[&global_descriptor_set],
+    )
+    .expect("Could not create graphics pipeline");
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
