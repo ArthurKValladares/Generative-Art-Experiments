@@ -96,6 +96,7 @@ fn main() {
         )],
     )
     .expect("Could not create descriptor set");
+    global_descriptor_set.update(&device);
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
