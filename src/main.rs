@@ -1,8 +1,8 @@
 use easy_ash::{
-    ApiVersion, ApplicationInfo, BindingDesc, Buffer, BufferType, Context, DescriptorBufferInfo,
-    DescriptorPool, DescriptorSet, DescriptorType, Device, Entry, GraphicsPipeline,
-    GraphicsProgram, Image, ImageResolution, ImageType, InstanceInfo, RenderPass, Shader,
-    ShaderStage, Surface, Swapchain,
+    ApiVersion, ApplicationInfo, BindingDesc, Buffer, BufferType, ClearValue, Context,
+    DescriptorBufferInfo, DescriptorPool, DescriptorSet, DescriptorType, Device, Entry, Fence,
+    GraphicsPipeline, GraphicsProgram, Image, ImageResolution, ImageType, InstanceInfo, RenderPass,
+    Semaphore, Shader, ShaderStage, Surface, Swapchain,
 };
 use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowBuilder};
 
@@ -51,7 +51,12 @@ fn main() {
     let setup_context = Context::new(&device).expect("Could not create setup context");
     let draw_context = Context::new(&device).expect("Could not create draw context");
 
-    let render_pass = RenderPass::new(&device, &swapchain).expect("Could not create RenderPass");
+    let render_pass = RenderPass::new(
+        &device,
+        &swapchain,
+        &[ClearValue::Color([1.0, 0.0, 1.0, 0.0])],
+    )
+    .expect("Could not create RenderPass");
 
     let graphics_program = GraphicsProgram::new(
         Shader::new(&device, "src/shaders/triangle_vert.spv")
@@ -103,6 +108,12 @@ fn main() {
     )
     .expect("Could not create graphics pipeline");
 
+    let present_complete_semaphore = Semaphore::new(&device).expect("Could not create semaphore");
+    let rendering_complete_semaphore = Semaphore::new(&device).expect("Could not create semaphore");
+
+    let draw_commands_reuse_fence = Fence::new(&device).expect("Could not create Fence");
+    let setup_commands_reuse_fence = Fence::new(&device).expect("Could not create Fence");
+
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
@@ -117,5 +128,19 @@ fn main() {
             },
             _ => {}
         }
+
+        let present_index = swapchain
+            .acquire_next_image_index(&present_complete_semaphore)
+            .expect("Could not acquire present image");
+
+        draw_context.record(&device, |device, context| {
+            render_pass.begin(device, context, present_index);
+            graphics_pipeline.bind(device, context);
+            device.set_viewport_and_scissor(context, &swapchain);
+            device.bind_index_buffer(context, &index_buffer);
+            render_pass.end(device, context);
+        });
+
+        swapchain.present(&device, &[&rendering_complete_semaphore], &[present_index]);
     });
 }
