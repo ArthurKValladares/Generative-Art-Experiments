@@ -133,13 +133,21 @@ fn main() {
             .acquire_next_image_index(&present_complete_semaphore)
             .expect("Could not acquire present image");
 
-        draw_context.record(&device, |device, context| {
-            render_pass.begin(device, context, present_index);
-            graphics_pipeline.bind(device, context);
-            device.set_viewport_and_scissor(context, &swapchain);
-            device.bind_index_buffer(context, &index_buffer);
-            render_pass.end(device, context);
-        });
+        draw_context.record(
+            &device,
+            &present_complete_semaphore,
+            &rendering_complete_semaphore,
+            &draw_commands_reuse_fence,
+            |device, context| {
+                render_pass.begin(device, context, present_index);
+                graphics_pipeline.bind(device, context);
+                device.set_viewport_and_scissor(context, &swapchain);
+                device.bind_index_buffer(context, &index_buffer);
+                graphics_pipeline.bind_descriptor_set(device, context, &global_descriptor_set);
+                device.draw_indexed(context, index_buffer_data.len() as u32);
+                render_pass.end(device, context);
+            },
+        );
 
         swapchain.present(&device, &[&rendering_complete_semaphore], &[present_index]);
     });
