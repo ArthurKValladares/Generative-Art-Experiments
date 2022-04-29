@@ -122,7 +122,25 @@ fn main() {
                 ..
             } => match window_event {
                 winit::event::WindowEvent::CloseRequested => {
-                    *control_flow = winit::event_loop::ControlFlow::Exit
+                    *control_flow = winit::event_loop::ControlFlow::Exit;
+
+                    device.wait_idle();
+                    unsafe {
+                        graphics_pipeline.clean(&device);
+                        graphics_program.clean(&device);
+                        index_buffer.clean(&device);
+                        vertex_buffer.clean(&device);
+                        render_pass.clean(&device);
+                        present_complete_semaphore.clean(&device);
+                        rendering_complete_semaphore.clean(&device);
+                        draw_commands_reuse_fence.clean(&device);
+                        setup_commands_reuse_fence.clean(&device);
+                        global_descriptor_set.clean(&device);
+                        descriptor_pool.clean(&device);
+                        swapchain.clean(&device);
+                        device.clean();
+                        entry.clean();
+                    }
                 }
                 _ => {}
             },
