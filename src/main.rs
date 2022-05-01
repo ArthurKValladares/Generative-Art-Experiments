@@ -1,8 +1,8 @@
 use easy_ash::{
-    ApiVersion, ApplicationInfo, BindingDesc, Buffer, BufferType, ClearValue, Context,
-    DescriptorBufferInfo, DescriptorPool, DescriptorSet, DescriptorType, Device, Entry, Fence,
-    GraphicsPipeline, GraphicsProgram, Image, ImageResolution, ImageType, InstanceInfo, RenderPass,
-    Semaphore, Shader, ShaderStage, Surface, Swapchain,
+    math::vec::Vec4, ApiVersion, ApplicationInfo, BindingDesc, Buffer, BufferType, ClearValue,
+    Context, DescriptorBufferInfo, DescriptorPool, DescriptorSet, DescriptorType, Device, Entry,
+    Fence, GraphicsPipeline, GraphicsProgram, Image, ImageResolution, ImageType, InstanceInfo,
+    RenderPass, Semaphore, Shader, ShaderStage, Surface, Swapchain,
 };
 use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowBuilder};
 
@@ -54,7 +54,7 @@ fn main() {
     let render_pass = RenderPass::new(
         &device,
         &swapchain,
-        &[ClearValue::Color([1.0, 0.0, 1.0, 0.0])],
+        &[ClearValue::Color(Vec4::new(1.0, 0.0, 1.0, 0.0))],
     )
     .expect("Could not create RenderPass");
 
