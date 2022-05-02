@@ -2,7 +2,7 @@ use easy_ash::{
     math::vec::Vec4, ApiVersion, ApplicationInfo, BindingDesc, Buffer, BufferType, ClearValue,
     Context, DescriptorBufferInfo, DescriptorPool, DescriptorSet, DescriptorType, Device, Entry,
     Fence, GraphicsPipeline, GraphicsProgram, Image, ImageResolution, ImageType, InstanceInfo,
-    RenderPass, Semaphore, Shader, ShaderStage, Surface, Swapchain,
+    PipelineStages, RenderPass, Semaphore, Shader, ShaderStage, Surface, Swapchain,
 };
 use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowBuilder};
 
@@ -156,6 +156,7 @@ fn main() {
             &present_complete_semaphore,
             &rendering_complete_semaphore,
             &draw_commands_reuse_fence,
+            &[PipelineStages::ColorAttachmentOutput],
             |device, context| {
                 render_pass.begin(device, context, present_index);
                 graphics_pipeline.bind(device, context);
