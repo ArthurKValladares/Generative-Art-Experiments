@@ -40,7 +40,7 @@ fn main() {
     .expect("Could not create Easy-Ash instance");
     let surface = Surface::new(&entry, &window).expect("Could not create Easy-Ash Surface");
     let device = Device::new(&entry, &surface).expect("Could not create Easy-Ash Device");
-    let swapchain = Swapchain::new(
+    let mut swapchain = Swapchain::new(
         &entry,
         &device,
         surface,
@@ -51,7 +51,7 @@ fn main() {
     let setup_context = Context::new(&device).expect("Could not create setup context");
     let draw_context = Context::new(&device).expect("Could not create draw context");
 
-    let render_pass = RenderPass::new(
+    let mut render_pass = RenderPass::new(
         &device,
         &swapchain,
         &[ClearValue::Color(Vec4::new(1.0, 0.0, 1.0, 0.0))],
@@ -141,6 +141,10 @@ fn main() {
                         device.clean();
                         entry.clean();
                     }
+                }
+                winit::event::WindowEvent::Resized(new_size) => {
+                    swapchain.resize(&entry, &device, new_size.width, new_size.height);
+                    render_pass.resize(&device, &swapchain);
                 }
                 _ => {}
             },
