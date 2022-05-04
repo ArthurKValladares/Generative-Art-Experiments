@@ -153,6 +153,8 @@ fn main() {
                     }
                 }
                 winit::event::WindowEvent::Resized(new_size) => {
+                    // TODO: Should I wait idle here?
+                    device.wait_idle();
                     swapchain.resize(&entry, &device, new_size.width, new_size.height);
                     render_pass.resize(&device, &swapchain);
                 }
