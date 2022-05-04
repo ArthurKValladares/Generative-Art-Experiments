@@ -1,3 +1,4 @@
+use carbon::ShaderWatcher;
 use easy_ash::{
     math::vec::Vec4, ApiVersion, ApplicationInfo, BindingDesc, Buffer, BufferType, ClearValue,
     Context, DescriptorBufferInfo, DescriptorPool, DescriptorSet, DescriptorType, Device, Entry,
@@ -57,6 +58,15 @@ fn main() {
         &[ClearValue::Color(Vec4::new(1.0, 0.0, 1.0, 0.0))],
     )
     .expect("Could not create RenderPass");
+
+    // Shader Watcher stuff
+    let mut shader_watcher = ShaderWatcher::new().expect("Could not create ShaderWatcher");
+    shader_watcher
+        .watch("src/shaders/triangle.vert")
+        .expect("Could not watch shader file");
+    shader_watcher
+        .watch("src/shaders/triangle.frag")
+        .expect("Could not watch shader file");
 
     let graphics_program = GraphicsProgram::new(
         Shader::new(&device, "src/shaders/triangle_vert.spv")
