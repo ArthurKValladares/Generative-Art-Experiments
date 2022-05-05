@@ -5,30 +5,24 @@ use rust_shader_tools::ShaderCompiler;
 pub use rust_shader_tools::ShaderStage as ShaderStageC;
 use std::path::Path;
 
-pub struct ShaderWatcher<'a> {
+pub struct ShaderWatcher {
     hotwatch: Hotwatch,
-    shader_compiler: ShaderCompiler<'a>,
 }
 
-impl<'a> ShaderWatcher<'a> {
+impl ShaderWatcher {
     pub fn new() -> Result<Self> {
         let hotwatch = Hotwatch::new()?;
-        let shader_compiler = ShaderCompiler::new()?;
-        Ok(Self {
-            hotwatch,
-            shader_compiler,
-        })
+        Ok(Self { hotwatch })
     }
 
     pub fn watch(&mut self, path: impl AsRef<Path>, shader_stage: ShaderStageC) -> Result<()> {
-        self.hotwatch.watch(path, |event: Event| {
+        self.hotwatch.watch(path, move |event: Event| {
             if let Event::Write(path) = event {
-                println!("Test");
-                /*
-                self.shader_compiler
+                let shader_compiler =
+                    ShaderCompiler::new().expect("Could not create shader compiler");
+                shader_compiler
                     .compile_shader(path, shader_stage)
                     .expect("Could not compile shader");
-                    */
             }
         })?;
         Ok(())
