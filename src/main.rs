@@ -1,4 +1,4 @@
-use carbon::ShaderWatcher;
+use carbon::{ShaderStageC, ShaderWatcher};
 use easy_ash::{
     math::vec::Vec4, ApiVersion, ApplicationInfo, BindingDesc, Buffer, BufferType, ClearValue,
     Context, DescriptorBufferInfo, DescriptorPool, DescriptorSet, DescriptorType, Device, Entry,
@@ -62,16 +62,16 @@ fn main() {
     // Shader Watcher stuff
     let mut shader_watcher = ShaderWatcher::new().expect("Could not create ShaderWatcher");
     shader_watcher
-        .watch("src/shaders/triangle.vert")
+        .watch("src/shaders/triangle.vert", ShaderStageC::Vertex)
         .expect("Could not watch shader file");
     shader_watcher
-        .watch("src/shaders/triangle.frag")
+        .watch("src/shaders/triangle.frag", ShaderStageC::Fragment)
         .expect("Could not watch shader file");
 
     let graphics_program = GraphicsProgram::new(
-        Shader::new(&device, "src/shaders/triangle_vert.spv")
+        Shader::new(&device, "src/shaders/spv/triangle.vert.spv")
             .expect("Could not create vertex shader"),
-        Shader::new(&device, "src/shaders/triangle_frag.spv")
+        Shader::new(&device, "src/shaders/spv/triangle.frag.spv")
             .expect("Could not create fragment shader"),
     );
 
