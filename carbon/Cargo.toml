@@ -4,7 +4,3 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "1"
-easy-ash = { path =  "../easy-ash" }
-hotwatch = "0.4.6"
-rust-shader-tools = { git = "https://github.com/ArthurKValladares/Rust-Shader-Tools" }
