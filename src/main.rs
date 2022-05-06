@@ -1,8 +1,9 @@
 use easy_ash::{
-    math::vec::Vec4, ApiVersion, ApplicationInfo, BindingDesc, Buffer, BufferType, ClearValue,
-    Context, DescriptorBufferInfo, DescriptorPool, DescriptorSet, DescriptorType, Device, Entry,
-    Fence, GraphicsPipeline, GraphicsProgram, Image, ImageResolution, ImageType, InstanceInfo,
-    PipelineStages, RenderPass, Semaphore, Shader, ShaderStage, Surface, Swapchain,
+    math::vec::Vec4, AccessMask, ApiVersion, ApplicationInfo, BindingDesc, Buffer, BufferType,
+    ClearValue, Context, DescriptorBufferInfo, DescriptorPool, DescriptorSet, DescriptorType,
+    Device, Entry, Fence, GraphicsPipeline, GraphicsProgram, Image, ImageLayout,
+    ImageMemoryBarrier, ImageResolution, ImageType, InstanceInfo, PipelineStages, RenderPass,
+    Semaphore, Shader, ShaderStage, Surface, Swapchain,
 };
 use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowBuilder};
 
@@ -57,6 +58,31 @@ fn main() {
         ImageType::Depth,
     )
     .expect("Could not create depth image");
+
+    let draw_commands_reuse_fence = Fence::new(&device).expect("Could not create Fence");
+    let setup_commands_reuse_fence = Fence::new(&device).expect("Could not create Fence");
+
+    setup_context.record(
+        &device,
+        &[],
+        &[],
+        &setup_commands_reuse_fence,
+        &[],
+        |device, context| {
+            let layout_transition_barrier = ImageMemoryBarrier::new(
+                &depth_image,
+                AccessMask::DepthStencil,
+                ImageLayout::Undefined,
+                ImageLayout::DepthStencil,
+            );
+            device.pipeline_image_barrier(
+                &setup_context,
+                PipelineStages::BottomOfPipe,
+                PipelineStages::LateFragmentTests,
+                &[layout_transition_barrier],
+            );
+        },
+    );
 
     let mut render_pass = RenderPass::new(
         &device,
@@ -118,9 +144,6 @@ fn main() {
     let present_complete_semaphore = Semaphore::new(&device).expect("Could not create semaphore");
     let rendering_complete_semaphore = Semaphore::new(&device).expect("Could not create semaphore");
 
-    let draw_commands_reuse_fence = Fence::new(&device).expect("Could not create Fence");
-    let setup_commands_reuse_fence = Fence::new(&device).expect("Could not create Fence");
-
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
@@ -167,8 +190,8 @@ fn main() {
 
         draw_context.record(
             &device,
-            &present_complete_semaphore,
-            &rendering_complete_semaphore,
+            &[present_complete_semaphore],
+            &[rendering_complete_semaphore],
             &draw_commands_reuse_fence,
             &[PipelineStages::ColorAttachmentOutput],
             |device, context| {
