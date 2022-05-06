@@ -51,6 +51,13 @@ fn main() {
     let setup_context = Context::new(&device).expect("Could not create setup context");
     let draw_context = Context::new(&device).expect("Could not create draw context");
 
+    let depth_image = Image::new(
+        &device,
+        swapchain.surface_data.resolution.into(),
+        ImageType::Depth,
+    )
+    .expect("Could not create depth image");
+
     let mut render_pass = RenderPass::new(
         &device,
         &swapchain,
@@ -138,6 +145,7 @@ fn main() {
                         global_descriptor_set.clean(&device);
                         descriptor_pool.clean(&device);
                         swapchain.clean(&device);
+                        depth_image.clean(&device);
                         device.clean();
                         entry.clean();
                     }
