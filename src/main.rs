@@ -1,17 +1,20 @@
 use easy_ash::{
-    math::vec::Vec4, AccessMask, ApiVersion, ApplicationInfo, BindingDesc, Buffer, BufferType,
-    ClearValue, Context, DescriptorBufferInfo, DescriptorPool, DescriptorSet, DescriptorType,
-    Device, Entry, Fence, GraphicsPipeline, GraphicsProgram, Image, ImageLayout,
-    ImageMemoryBarrier, ImageResolution, ImageType, InstanceInfo, PipelineStages, RenderPass,
-    Semaphore, Shader, ShaderStage, Surface, Swapchain,
+    math::vec::{Vec2, Vec4},
+    AccessMask, ApiVersion, ApplicationInfo, BindingDesc, Buffer, BufferType, ClearValue, Context,
+    DescriptorBufferInfo, DescriptorPool, DescriptorSet, DescriptorType, Device, Entry, Fence,
+    GraphicsPipeline, GraphicsProgram, Image, ImageLayout, ImageMemoryBarrier, ImageResolution,
+    ImageType, InstanceInfo, PipelineStages, RenderPass, Semaphore, Shader, ShaderStage, Surface,
+    Swapchain,
 };
 use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowBuilder};
 
 // TODO: This will be defined in the shader later
+#[repr(C)]
 #[derive(Clone, Debug, Copy)]
 struct Vertex {
-    pos: [f32; 4],
-    color: [f32; 4],
+    pos: Vec4,
+    uv: Vec2,
+    pad: Vec2,
 }
 
 fn main() {
@@ -98,22 +101,30 @@ fn main() {
             .expect("Could not create fragment shader"),
     );
 
-    let index_buffer_data = [0u32, 1, 2];
+    let index_buffer_data = [0u32, 1, 2, 2, 3, 0];
     let index_buffer = Buffer::from_data(&device, BufferType::Index, &index_buffer_data)
         .expect("Could not create index buffer");
 
     let vertex_buffer_data = [
         Vertex {
-            pos: [-1.0, 1.0, 0.0, 1.0],
-            color: [0.0, 1.0, 0.0, 1.0],
+            pos: Vec4::new(-1.0, -1.0, 0.0, 1.0),
+            uv: Vec2::new(0.0, 0.0),
+            pad: Default::default(),
         },
         Vertex {
-            pos: [1.0, 1.0, 0.0, 1.0],
-            color: [0.0, 0.0, 1.0, 1.0],
+            pos: Vec4::new(-1.0, 1.0, 0.0, 1.0),
+            uv: Vec2::new(0.0, 1.0),
+            pad: Default::default(),
         },
         Vertex {
-            pos: [0.0, -1.0, 0.0, 1.0],
-            color: [1.0, 0.0, 0.0, 1.0],
+            pos: Vec4::new(1.0, 1.0, 0.0, 1.0),
+            uv: Vec2::new(1.0, 1.0),
+            pad: Default::default(),
+        },
+        Vertex {
+            pos: Vec4::new(1.0, -1.0, 0.0, 1.0),
+            uv: Vec2::new(1.0, 0.0),
+            pad: Default::default(),
         },
     ];
     let vertex_buffer = Buffer::from_data(&device, BufferType::Storage, &vertex_buffer_data)
