@@ -1,10 +1,10 @@
 use easy_ash::{
     math::vec::{Vec2, Vec4},
     AccessMask, ApiVersion, ApplicationInfo, BindingDesc, Buffer, BufferType, ClearValue, Context,
-    DescriptorBufferInfo, DescriptorPool, DescriptorSet, DescriptorType, Device, Entry, Fence,
-    GraphicsPipeline, GraphicsProgram, Image, ImageLayout, ImageMemoryBarrier, ImageResolution,
-    ImageType, InstanceInfo, PipelineStages, RenderPass, Semaphore, Shader, ShaderStage, Surface,
-    Swapchain,
+    DescriptorBufferInfo, DescriptorImageInfo, DescriptorPool, DescriptorSet, DescriptorType,
+    Device, Entry, Fence, GraphicsPipeline, GraphicsProgram, Image, ImageLayout,
+    ImageMemoryBarrier, ImageResolution, ImageType, InstanceInfo, PipelineStages, RenderPass,
+    Sampler, Semaphore, Shader, ShaderStage, Surface, Swapchain,
 };
 use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowBuilder};
 
@@ -130,15 +130,38 @@ fn main() {
     let vertex_buffer = Buffer::from_data(&device, BufferType::Storage, &vertex_buffer_data)
         .expect("Could not create vertex buffer");
 
+    let ferris_texture = Image::from_file(
+        &device,
+        &setup_context,
+        &setup_commands_reuse_fence,
+        "src/assets/textures/ferris.png",
+    )
+    .expect("Could not crate image");
+    let sampler = Sampler::new(&device).expect("Could not create sampler");
+
     let descriptor_pool = DescriptorPool::new(&device).expect("Could not create descriptor pool");
     let global_descriptor_set = DescriptorSet::new(
         &device,
         &descriptor_pool,
-        &[BindingDesc::new(
-            DescriptorType::StorageBuffer(DescriptorBufferInfo::new(&vertex_buffer, None, None)),
-            1,
-            ShaderStage::Vertex,
-        )],
+        &[
+            BindingDesc::new(
+                DescriptorType::StorageBuffer(DescriptorBufferInfo::new(
+                    &vertex_buffer,
+                    None,
+                    None,
+                )),
+                1,
+                ShaderStage::Vertex,
+            ),
+            BindingDesc::new(
+                DescriptorType::CombinedImageSampler(DescriptorImageInfo::new(
+                    &ferris_texture,
+                    &sampler,
+                )),
+                1,
+                ShaderStage::Fragment,
+            ),
+        ],
     )
     .expect("Could not create descriptor set");
     global_descriptor_set.update(&device);
