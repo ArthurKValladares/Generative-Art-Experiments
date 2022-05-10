@@ -12,11 +12,11 @@ layout(set = 0, binding = 0) readonly buffer Vertices
 	Vertex vertices[];
 };
 
-layout (location = 0) out vec4 o_color;
+layout (location = 0) out vec2 o_uv;
 
 void main() {
     Vertex v=vertices[gl_VertexIndex];
 
-    o_color = vec4(v.uv, 0.0, 1.0);
+    o_uv = v.uv;
     gl_Position = v.pos;
 }
