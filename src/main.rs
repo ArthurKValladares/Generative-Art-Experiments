@@ -135,7 +135,7 @@ fn main() {
     let vertex_buffer = Buffer::from_data(&device, BufferType::Storage, &vertex_buffer_data)
         .expect("Could not create vertex buffer");
 
-    let ferris_texture = Image::from_file(
+    let (ferris_texture, ferris_staging_buffer) = Image::from_file(
         &device,
         &setup_context,
         &setup_commands_reuse_fence,
@@ -208,6 +208,10 @@ fn main() {
                         descriptor_pool.clean(&device);
                         swapchain.clean(&device);
                         depth_image.clean(&device);
+                        sampler.clean(&device);
+                        ferris_texture.clean(&device);
+                        // TODO: This should be freed much sooner, handle later after we figure out syncronization
+                        ferris_staging_buffer.clean(&device);
                         device.clean();
                         entry.clean();
                     }
