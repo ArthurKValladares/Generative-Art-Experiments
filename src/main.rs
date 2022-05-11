@@ -1,3 +1,4 @@
+use carbon::scene::GltfScene;
 use easy_ash::{
     math::vec::{Vec2, Vec4},
     AccessMask, ApiVersion, ApplicationInfo, BindingDesc, Buffer, BufferType, ClearValue, Context,
@@ -100,6 +101,10 @@ fn main() {
         Shader::new(&device, "src/shaders/spv/triangle.frag.spv")
             .expect("Could not create fragment shader"),
     );
+    let sampler = Sampler::new(&device).expect("Could not create sampler");
+
+    // Scene setup start
+    let gltf_scene = GltfScene::new("glTF-Sample-Models/2.0/Box");
 
     let index_buffer_data = [0u32, 1, 2, 2, 3, 0];
     let index_buffer = Buffer::from_data(&device, BufferType::Index, &index_buffer_data)
@@ -137,7 +142,7 @@ fn main() {
         "src/assets/textures/ferris.png",
     )
     .expect("Could not crate image");
-    let sampler = Sampler::new(&device).expect("Could not create sampler");
+    // Scene setup end
 
     let descriptor_pool = DescriptorPool::new(&device).expect("Could not create descriptor pool");
     let global_descriptor_set = DescriptorSet::new(
