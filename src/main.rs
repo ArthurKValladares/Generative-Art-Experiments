@@ -5,7 +5,7 @@ use easy_ash::{
     DescriptorBufferInfo, DescriptorImageInfo, DescriptorPool, DescriptorSet, DescriptorType,
     Device, Entry, Fence, GraphicsPipeline, GraphicsProgram, Image, ImageLayout,
     ImageMemoryBarrier, ImageResolution, ImageType, InstanceInfo, PipelineStages, RenderPass,
-    Sampler, Semaphore, Shader, ShaderStage, Surface, Swapchain,
+    Sampler, SamplerFilter, SamplerWrapMode, Semaphore, Shader, ShaderStage, Surface, Swapchain,
 };
 use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowBuilder};
 
@@ -101,7 +101,8 @@ fn main() {
         Shader::new(&device, "src/shaders/spv/triangle.frag.spv")
             .expect("Could not create fragment shader"),
     );
-    let sampler = Sampler::new(&device).expect("Could not create sampler");
+    let sampler = Sampler::new(&device, SamplerFilter::Nearest, SamplerWrapMode::Clamp)
+        .expect("Could not create sampler");
 
     // Scene setup start
     let gltf_scene = GltfScene::new("glTF-Sample-Models/2.0/Box");
