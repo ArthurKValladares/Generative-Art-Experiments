@@ -34,7 +34,6 @@ fn main() {
         .unwrap();
     let window_size = window.inner_size();
 
-    // TODO: Does `Entry` warrant being it's own struct? Should I just fold it into `Device`?
     let entry = Entry::new(
         ApplicationInfo::default()
             .with_application_name(app_title)
