@@ -1,3 +1,4 @@
+use crate::scene::CompiledScene;
 use anyhow::Result;
 use std::path::Path;
 
@@ -15,5 +16,9 @@ impl GltfScene {
             buffers,
             images,
         })
+    }
+
+    pub fn default_compiled_scene(&self) -> Option<CompiledScene> {
+        self.document.default_scene().map(|scene| CompiledScene {})
     }
 }
