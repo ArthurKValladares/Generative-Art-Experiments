@@ -111,6 +111,7 @@ dependencies = [
  "anyhow",
  "bytes",
  "gltf",
+ "image 0.24.2",
  "thiserror",
 ]
 

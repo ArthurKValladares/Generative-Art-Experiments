@@ -1,7 +1,9 @@
 use anyhow::Result;
 use bytes::Bytes;
+use image::GenericImageView;
 use std::{
-    fs, io,
+    fs::{self, File},
+    io::{self, BufReader},
     path::{Path, PathBuf},
 };
 use thiserror::Error;
@@ -10,6 +12,8 @@ use thiserror::Error;
 pub enum GltfSceneError {
     #[error("Binary buffers not yet supporterd")]
     BinaryBuffer,
+    #[error("Image views not yet supporterd")]
+    ViewImage,
     #[error(transparent)]
     IoError(#[from] std::io::Error),
 }
@@ -60,5 +64,27 @@ impl GltfScene {
             buffer_data.push(Bytes::from(data));
         }
         Ok(buffer_data)
+    }
+
+    pub fn image_data(&self) -> Result<Vec<((u32, u32), Bytes)>> {
+        let mut image_data = Vec::new();
+        for image in self.document.images() {
+            let (dims, data) = match image.source() {
+                gltf::image::Source::View {
+                    view: _,
+                    mime_type: _,
+                } => Err(GltfSceneError::ViewImage),
+                gltf::image::Source::Uri { uri, mime_type: _ } => {
+                    // TODO: Same as in `Image::from_file`, refector. Refactor dims as well
+                    let im = image::load(
+                        BufReader::new(File::open(self.file_root.join(uri))?),
+                        image::ImageFormat::Png,
+                    )?;
+                    Ok((im.dimensions(), im.into_bytes()))
+                }
+            }?;
+            image_data.push((dims, Bytes::from(data)));
+        }
+        Ok(image_data)
     }
 }
