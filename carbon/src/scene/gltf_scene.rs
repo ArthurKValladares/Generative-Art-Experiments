@@ -33,21 +33,17 @@ fn read_to_bytes(path: impl AsRef<Path>) -> Result<Vec<u8>, GltfSceneError> {
 
 pub struct GltfScene {
     file_root: PathBuf,
-    document: gltf::Document,
-    buffers: Vec<gltf::buffer::Data>,
-    images: Vec<gltf::image::Data>,
+    document: gltf::Gltf,
 }
 
 impl GltfScene {
     pub fn new(path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
-        let (document, buffers, images) = gltf::import(path)?;
+        let document = gltf::Gltf::open(path)?;
         let file_root = path.parent().unwrap_or(Path::new("./"));
         Ok(Self {
             file_root: file_root.to_owned(),
             document,
-            buffers,
-            images,
         })
     }
 
