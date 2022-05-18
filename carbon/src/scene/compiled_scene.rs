@@ -1,4 +1,7 @@
+use math::vec::Vec3;
+
+#[derive(Debug, Default)]
 pub struct CompiledScene {
-    pub index_buffer: Vec<u8>,
-    pub vertex_buffer: Vec<u8>,
+    pub positions: Vec<Vec3>,
+    pub indices: Vec<u32>,
 }

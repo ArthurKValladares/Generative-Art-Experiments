@@ -106,9 +106,8 @@ fn main() {
     // Scene setup start
     let gltf_scene = GltfScene::new("glTF-Sample-Models/2.0/Box/glTF/Box.gltf")
         .expect("Coult not load gltf scene");
-    let buffer_data = gltf_scene
-        .buffer_data()
-        .expect("Could not get buffer data from document");
+    let compiled_scene = gltf_scene.compile().expect("Could not compile Gltf Scene");
+    println!("Scene: {:#?}", compiled_scene);
 
     let index_buffer_data = [0u32, 1, 2, 2, 3, 0];
     let index_buffer = Buffer::from_data(&device, BufferType::Index, &index_buffer_data)

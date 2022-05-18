@@ -1,6 +1,8 @@
+use super::compiled_scene::CompiledScene;
 use anyhow::Result;
 use bytes::Bytes;
 use image::GenericImageView;
+use math::vec::Vec3;
 use std::{
     fs::{self, File},
     io::{self, BufReader},
@@ -16,6 +18,8 @@ pub enum GltfSceneError {
     ViewImage,
     #[error(transparent)]
     IoError(#[from] std::io::Error),
+    #[error("Gltf file contained no default scene")]
+    NoDefaultScene,
 }
 
 // Thanks to:
@@ -31,9 +35,20 @@ fn read_to_bytes(path: impl AsRef<Path>) -> Result<Vec<u8>, GltfSceneError> {
     Ok(data)
 }
 
+fn compile_gltf_node<F>(node: &gltf::scene::Node, f: &mut F)
+where
+    F: FnMut(&gltf::scene::Node),
+{
+    f(&node);
+
+    for child in node.children() {
+        compile_gltf_node(&child, f);
+    }
+}
+
 pub struct GltfScene {
     file_root: PathBuf,
-    document: gltf::Gltf,
+    gltf: gltf::Gltf,
 }
 
 impl GltfScene {
@@ -43,13 +58,69 @@ impl GltfScene {
         let file_root = path.parent().unwrap_or(Path::new("./"));
         Ok(Self {
             file_root: file_root.to_owned(),
-            document,
+            gltf: document,
         })
     }
 
-    pub fn buffer_data(&self) -> Result<Vec<Bytes>> {
+    pub fn compile(&self) -> Result<CompiledScene, GltfSceneError> {
+        let buffers = self.buffer_data()?;
+
+        // TODO: Have a way to compile other scenes
+        if let Some(scene) = self
+            .gltf
+            .default_scene()
+            .or_else(|| self.gltf.scenes().next())
+        {
+            let mut compiled_scene = CompiledScene::default();
+
+            let mut process_node = |node: &gltf::scene::Node| {
+                // Process Mesh
+                if let Some(mesh) = node.mesh() {
+                    // Process Mesh primitives
+                    for prim in mesh.primitives() {
+                        let reader = prim.reader(|buffer| Some(&buffers[buffer.index()]));
+
+                        // Process vertex positions
+                        let mut positions = if let Some(iter) = reader.read_positions() {
+                            iter.map(|data| data.into()).collect::<Vec<Vec3>>()
+                        } else {
+                            return;
+                        };
+
+                        // Process Mesh indices
+                        let mut indices = {
+                            let mut indices = if let Some(indices_reader) = reader.read_indices() {
+                                indices_reader.into_u32().collect::<Vec<u32>>()
+                            } else {
+                                (0..positions.len() as u32).collect::<Vec<u32>>()
+                            };
+
+                            let base_index = compiled_scene.positions.len() as u32;
+                            for i in &mut indices {
+                                *i += base_index;
+                            }
+
+                            indices
+                        };
+
+                        // TODO: remove need for mut bindings
+                        compiled_scene.positions.append(&mut positions);
+                        compiled_scene.indices.append(&mut indices);
+                    }
+                }
+            };
+            for node in scene.nodes() {
+                compile_gltf_node(&node, &mut process_node);
+            }
+            Ok(compiled_scene)
+        } else {
+            Err(GltfSceneError::NoDefaultScene)
+        }
+    }
+
+    pub fn buffer_data(&self) -> Result<Vec<Bytes>, GltfSceneError> {
         let mut buffer_data = Vec::new();
-        for buffer in self.document.buffers() {
+        for buffer in self.gltf.buffers() {
             let mut data = match buffer.source() {
                 gltf::buffer::Source::Bin => Err(GltfSceneError::BinaryBuffer),
                 gltf::buffer::Source::Uri(uri) => read_to_bytes(self.file_root.join(uri)),
@@ -64,7 +135,7 @@ impl GltfScene {
 
     pub fn image_data(&self) -> Result<Vec<((u32, u32), Bytes)>> {
         let mut image_data = Vec::new();
-        for image in self.document.images() {
+        for image in self.gltf.images() {
             let (dims, data) = match image.source() {
                 gltf::image::Source::View {
                     view: _,
