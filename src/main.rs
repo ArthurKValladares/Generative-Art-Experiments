@@ -107,34 +107,22 @@ fn main() {
     let gltf_scene = GltfScene::new("glTF-Sample-Models/2.0/Box/glTF/Box.gltf")
         .expect("Coult not load gltf scene");
     let compiled_scene = gltf_scene.compile().expect("Could not compile Gltf Scene");
-    println!("Scene: {:#?}", compiled_scene);
 
-    let index_buffer_data = [0u32, 1, 2, 2, 3, 0];
-    let index_buffer = Buffer::from_data(&device, BufferType::Index, &index_buffer_data)
+    let index_buffer = Buffer::from_data(&device, BufferType::Index, &compiled_scene.indices)
         .expect("Could not create index buffer");
 
-    let vertex_buffer_data = [
-        Vertex {
-            pos: Vec4::new(-1.0, -1.0, 0.0, 1.0),
-            uv: Vec2::new(0.0, 0.0),
-            pad: Default::default(),
-        },
-        Vertex {
-            pos: Vec4::new(-1.0, 1.0, 0.0, 1.0),
-            uv: Vec2::new(0.0, 1.0),
-            pad: Default::default(),
-        },
-        Vertex {
-            pos: Vec4::new(1.0, 1.0, 0.0, 1.0),
-            uv: Vec2::new(1.0, 1.0),
-            pad: Default::default(),
-        },
-        Vertex {
-            pos: Vec4::new(1.0, -1.0, 0.0, 1.0),
-            uv: Vec2::new(1.0, 0.0),
-            pad: Default::default(),
-        },
-    ];
+    let vertex_buffer_data = {
+        let mut ret: Vec<Vertex> = Vec::with_capacity(compiled_scene.positions.len());
+        for idx in 0..compiled_scene.positions.len() {
+            ret.push(Vertex {
+                pos: compiled_scene.positions[idx].into(),
+                uv: compiled_scene.uvs[idx],
+                pad: Default::default(),
+            });
+        }
+        ret
+    };
+
     let vertex_buffer = Buffer::from_data(&device, BufferType::Storage, &vertex_buffer_data)
         .expect("Could not create vertex buffer");
 
@@ -246,7 +234,7 @@ fn main() {
                 device.set_viewport_and_scissor(context, &swapchain);
                 device.bind_index_buffer(context, &index_buffer);
                 graphics_pipeline.bind_descriptor_set(device, context, &global_descriptor_set);
-                device.draw_indexed(context, index_buffer_data.len() as u32);
+                device.draw_indexed(context, compiled_scene.indices.len() as u32);
                 render_pass.end(device, context);
             },
         );
