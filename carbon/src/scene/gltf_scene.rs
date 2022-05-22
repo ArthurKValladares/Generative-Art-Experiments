@@ -2,7 +2,7 @@ use super::compiled_scene::CompiledScene;
 use anyhow::Result;
 use bytes::Bytes;
 use image::GenericImageView;
-use math::vec::Vec3;
+use math::vec::{Vec2, Vec3};
 use std::{
     fs::{self, File},
     io::{self, BufReader},
@@ -87,6 +87,15 @@ impl GltfScene {
                             return;
                         };
 
+                        // Process uvs
+                        let mut uvs = if let Some(iter) = reader.read_tex_coords(0) {
+                            iter.into_f32()
+                                .map(|data| data.into())
+                                .collect::<Vec<Vec2>>()
+                        } else {
+                            vec![Vec2::new(0.0, 0.0); positions.len()]
+                        };
+
                         // Process Mesh indices
                         let mut indices = {
                             let mut indices = if let Some(indices_reader) = reader.read_indices() {
@@ -105,6 +114,7 @@ impl GltfScene {
 
                         // TODO: remove need for mut bindings
                         compiled_scene.positions.append(&mut positions);
+                        compiled_scene.uvs.append(&mut uvs);
                         compiled_scene.indices.append(&mut indices);
                     }
                 }
