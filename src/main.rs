@@ -4,8 +4,8 @@ use easy_ash::{
     AccessMask, ApiVersion, ApplicationInfo, BindingDesc, Buffer, BufferType, ClearValue, Context,
     DescriptorBufferInfo, DescriptorImageInfo, DescriptorPool, DescriptorSet, DescriptorType,
     Device, Entry, Fence, GraphicsPipeline, GraphicsProgram, Image, ImageLayout,
-    ImageMemoryBarrier, ImageResolution, ImageType, InstanceInfo, PipelineStages, RenderPass,
-    Sampler, SamplerFilter, SamplerWrapMode, Semaphore, Shader, ShaderStage, Surface, Swapchain,
+    ImageMemoryBarrier, ImageType, InstanceInfo, PipelineStages, RenderPass, Sampler,
+    SamplerFilter, SamplerWrapMode, Semaphore, Shader, ShaderStage, Surface, Swapchain,
 };
 use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowBuilder};
 
@@ -104,7 +104,8 @@ fn main() {
         .expect("Could not create sampler");
 
     // Scene setup start
-    let gltf_scene = GltfScene::new("glTF-Sample-Models/2.0/Box/glTF/Box.gltf")
+    // TODO: GLtf camera stuff
+    let gltf_scene = GltfScene::new("glTF-Sample-Models/2.0/Triangle/glTF/Triangle.gltf")
         .expect("Coult not load gltf scene");
     let compiled_scene = gltf_scene.compile().expect("Could not compile Gltf Scene");
 
