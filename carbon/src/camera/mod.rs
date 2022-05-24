@@ -2,64 +2,35 @@ use math::mat::Mat4;
 
 // TODO: Perspective camera
 
-#[derive(Default)]
-pub struct WorldMatrix {
-    _mat: Mat4,
-}
-
-#[derive(Default)]
-pub struct ViewMatrix {
-    _mat: Mat4,
-}
-
-#[repr(C)]
-#[derive(Default, Copy, Clone)]
-pub struct ProjMatrix {
-    mat: Mat4,
-}
-
-impl ProjMatrix {
-    pub fn new_ortographic(
-        left: f32,
-        right: f32,
-        top: f32,
-        bottom: f32,
-        near: f32,
-        far: f32,
-    ) -> Self {
-        Self {
-            mat: Mat4::from_rows_array([
-                2.0 / (right - left),
-                0.0,
-                0.0,
-                0.0,
-                //
-                0.0,
-                2.0 / (bottom - top),
-                0.0,
-                0.0,
-                //
-                0.0,
-                0.0,
-                1.0 / (far - near),
-                0.0,
-                //
-                -(right + left) / (right - left),
-                -(bottom + top) / (bottom - top),
-                -(near) / (far - near),
-                1.0,
-            ]),
-        }
-    }
-
-    pub fn to_camera_matrices(self) -> CameraMatrices {
-        CameraMatrices { proj: self }
-    }
-}
-
-#[repr(C)]
-pub struct CameraMatrices {
-    proj: ProjMatrix,
+pub fn new_ortographic_proj(
+    left: f32,
+    right: f32,
+    top: f32,
+    bottom: f32,
+    near: f32,
+    far: f32,
+) -> Mat4 {
+    Mat4::from_rows_array([
+        2.0 / (right - left),
+        0.0,
+        0.0,
+        0.0,
+        //
+        0.0,
+        2.0 / (bottom - top),
+        0.0,
+        0.0,
+        //
+        0.0,
+        0.0,
+        1.0 / (far - near),
+        0.0,
+        //
+        -(right + left) / (right - left),
+        -(bottom + top) / (bottom - top),
+        -(near) / (far - near),
+        1.0,
+    ])
 }
 
 pub struct OrtographicData {
@@ -86,13 +57,13 @@ impl CameraType {
 }
 
 pub enum Camera {
-    Ortographic(ProjMatrix),
-    Perspective(ProjMatrix),
+    Ortographic(Mat4),
+    Perspective(Mat4),
 }
 
 impl Camera {
     pub fn new_ortographic(data: OrtographicData) -> Self {
-        Self::Ortographic(ProjMatrix::new_ortographic(
+        Self::Ortographic(new_ortographic_proj(
             data.left,
             data.right,
             data.top,
@@ -102,10 +73,10 @@ impl Camera {
         ))
     }
 
-    pub fn projection_matrix(&self) -> &ProjMatrix {
+    pub fn raw_matrix(&self) -> &Mat4 {
         match self {
-            Self::Ortographic(proj) => proj,
-            Self::Perspective(proj) => proj,
+            Camera::Ortographic(mat) => mat,
+            Camera::Perspective(mat) => mat,
         }
     }
 }

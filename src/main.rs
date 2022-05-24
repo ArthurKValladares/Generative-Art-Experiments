@@ -146,6 +146,12 @@ fn main() {
         near: 0.0,
         far: 1.0,
     });
+    let camera_buffer = Buffer::from_data(
+        &device,
+        BufferType::Uniform,
+        std::slice::from_ref(camera.raw_matrix()),
+    )
+    .expect("Could not create vertex buffer");
     // Scene setup end
 
     let descriptor_pool = DescriptorPool::new(&device).expect("Could not create descriptor pool");
@@ -169,6 +175,15 @@ fn main() {
                 )),
                 1,
                 ShaderStage::Fragment,
+            ),
+            BindingDesc::new(
+                DescriptorType::UniformBuffer(DescriptorBufferInfo::new(
+                    &camera_buffer,
+                    None,
+                    None,
+                )),
+                1,
+                ShaderStage::Vertex,
             ),
         ],
     )
@@ -203,6 +218,7 @@ fn main() {
                         graphics_program.clean(&device);
                         index_buffer.clean(&device);
                         vertex_buffer.clean(&device);
+                        camera_buffer.clean(&device);
                         render_pass.clean(&device);
                         present_complete_semaphore.clean(&device);
                         rendering_complete_semaphore.clean(&device);
