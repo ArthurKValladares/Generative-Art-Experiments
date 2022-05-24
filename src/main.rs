@@ -1,4 +1,7 @@
-use carbon::scene::GltfScene;
+use carbon::{
+    camera::{Camera, OrtographicData},
+    scene::GltfScene,
+};
 use easy_ash::{
     math::vec::{Vec2, Vec4},
     AccessMask, ApiVersion, ApplicationInfo, BindingDesc, Buffer, BufferType, ClearValue, Context,
@@ -134,6 +137,15 @@ fn main() {
         "src/assets/textures/ferris.png",
     )
     .expect("Could not crate image");
+
+    let camera = Camera::new_ortographic(OrtographicData {
+        left: 0.0,
+        right: 1.0,
+        top: 0.0,
+        bottom: 1.0,
+        near: 0.0,
+        far: 1.0,
+    });
     // Scene setup end
 
     let descriptor_pool = DescriptorPool::new(&device).expect("Could not create descriptor pool");
