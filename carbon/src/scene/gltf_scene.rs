@@ -2,7 +2,7 @@ use super::compiled_scene::CompiledScene;
 use anyhow::Result;
 use bytes::Bytes;
 use image::GenericImageView;
-use math::vec::{Vec2, Vec3};
+use math::vec::{Vec2, Vec3, Vec4};
 use std::{
     fs::{self, File},
     io::{self, BufReader},
@@ -87,6 +87,13 @@ impl GltfScene {
                             return;
                         };
 
+                        // Process colors
+                        let mut colors = if let Some(iter) = reader.read_colors(0) {
+                            iter.into_rgba_f32().map(|data| data.into()).collect::<Vec<Vec4>>()
+                        } else {
+                            vec![Vec4::new(0.5, 0.5, 0.5, 1.0); positions.len()]
+                        };
+
                         // Process uvs
                         let mut uvs = if let Some(iter) = reader.read_tex_coords(0) {
                             iter.into_f32()
@@ -114,6 +121,7 @@ impl GltfScene {
 
                         // TODO: remove need for mut bindings
                         compiled_scene.positions.append(&mut positions);
+                        compiled_scene.colors.append(&mut colors);
                         compiled_scene.uvs.append(&mut uvs);
                         compiled_scene.indices.append(&mut indices);
                     }

@@ -17,6 +17,7 @@ use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::Windo
 #[derive(Clone, Debug, Copy)]
 struct Vertex {
     pos: Vec4,
+    color: Vec4,
     uv: Vec2,
     pad: Vec2,
 }
@@ -120,6 +121,7 @@ fn main() {
         for idx in 0..compiled_scene.positions.len() {
             ret.push(Vertex {
                 pos: compiled_scene.positions[idx].into(),
+                color: compiled_scene.colors[idx],
                 uv: compiled_scene.uvs[idx],
                 pad: Default::default(),
             });
