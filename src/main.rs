@@ -88,7 +88,7 @@ fn main() {
                 &[layout_transition_barrier],
             );
         },
-    );
+    ).expect("Could not record setup context");
 
     let mut render_pass = RenderPass::new(
         &device,
@@ -237,7 +237,6 @@ fn main() {
                     }
                 }
                 winit::event::WindowEvent::Resized(new_size) => {
-                    // TODO: Should I wait idle here?
                     device.wait_idle();
                     swapchain.resize(&entry, &device, new_size.width, new_size.height);
                     render_pass.resize(&device, &swapchain);
@@ -266,8 +265,8 @@ fn main() {
                 device.draw_indexed(context, compiled_scene.indices.len() as u32);
                 render_pass.end(device, context);
             },
-        );
+        ).expect("Could not record draw context");
 
-        swapchain.present(&device, &[&rendering_complete_semaphore], &[present_index]);
+        swapchain.present(&device, &[&rendering_complete_semaphore], &[present_index]).expect("Could not present to swapchain");
     });
 }
