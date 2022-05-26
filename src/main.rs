@@ -69,27 +69,29 @@ fn main() {
     let draw_commands_reuse_fence = Fence::new(&device).expect("Could not create Fence");
     let setup_commands_reuse_fence = Fence::new(&device).expect("Could not create Fence");
 
-    setup_context.record(
-        &device,
-        &[],
-        &[],
-        &setup_commands_reuse_fence,
-        &[],
-        |device, context| {
-            let layout_transition_barrier = ImageMemoryBarrier::new(
-                &depth_image,
-                AccessMask::DepthStencil,
-                ImageLayout::Undefined,
-                ImageLayout::DepthStencil,
-            );
-            device.pipeline_image_barrier(
-                &setup_context,
-                PipelineStages::BottomOfPipe,
-                PipelineStages::LateFragmentTests,
-                &[layout_transition_barrier],
-            );
-        },
-    ).expect("Could not record setup context");
+    setup_context
+        .record(
+            &device,
+            &[],
+            &[],
+            &setup_commands_reuse_fence,
+            &[],
+            |device, context| {
+                let layout_transition_barrier = ImageMemoryBarrier::new(
+                    &depth_image,
+                    AccessMask::DepthStencil,
+                    ImageLayout::Undefined,
+                    ImageLayout::DepthStencil,
+                );
+                device.pipeline_image_barrier(
+                    &setup_context,
+                    PipelineStages::BottomOfPipe,
+                    PipelineStages::LateFragmentTests,
+                    &[layout_transition_barrier],
+                );
+            },
+        )
+        .expect("Could not record setup context");
 
     let mut render_pass = RenderPass::new(
         &device,
@@ -109,9 +111,25 @@ fn main() {
 
     // Scene setup start
     // TODO: GLtf camera stuff
-    let gltf_scene = GltfScene::new("glTF-Sample-Models/2.0/Triangle/glTF/Triangle.gltf")
+    let gltf_scene = GltfScene::new("glTF-Sample-Models/2.0/BoxTextured/glTF/BoxTextured.gltf")
         .expect("Coult not load gltf scene");
     let compiled_scene = gltf_scene.compile().expect("Could not compile Gltf Scene");
+
+    let images = gltf_scene.image_data().expect("Could not load images");
+    let images_data = images
+        .into_iter()
+        .map(|((width, height), bytes)| {
+            Image::from_data_and_dims(
+                &device,
+                &setup_context,
+                &setup_commands_reuse_fence,
+                width,
+                height,
+                bytes,
+            )
+            .expect("Could not crate image")
+        })
+        .collect::<Vec<_>>();
 
     let index_buffer = Buffer::from_data(&device, BufferType::Index, &compiled_scene.indices)
         .expect("Could not create index buffer");
@@ -128,23 +146,14 @@ fn main() {
         }
         ret
     };
-
     let vertex_buffer = Buffer::from_data(&device, BufferType::Storage, &vertex_buffer_data)
         .expect("Could not create vertex buffer");
 
-    let (ferris_texture, ferris_staging_buffer) = Image::from_file(
-        &device,
-        &setup_context,
-        &setup_commands_reuse_fence,
-        "src/assets/textures/ferris.png",
-    )
-    .expect("Could not crate image");
-
     let camera = Camera::new_ortographic(OrtographicData {
-        left: 0.0,
+        left: -1.0,
         right: 1.0,
         top: 1.0,
-        bottom: 0.0,
+        bottom: -1.0,
         near: 0.0,
         far: 1.0,
     });
@@ -172,7 +181,7 @@ fn main() {
             ),
             BindingDesc::new(
                 DescriptorType::CombinedImageSampler(DescriptorImageInfo::new(
-                    &ferris_texture,
+                    &images_data[0].0, // TODO: actually handle this correctly later
                     &sampler,
                 )),
                 1,
@@ -231,9 +240,11 @@ fn main() {
                         swapchain.clean(&device);
                         depth_image.clean(&device);
                         sampler.clean(&device);
-                        ferris_texture.clean(&device);
-                        // TODO: This should be freed much sooner, handle later after we figure out syncronization
-                        ferris_staging_buffer.clean(&device);
+                        for (image, staging_buffer) in &images_data {
+                            image.clean(&device);
+                            // TODO: This should be freed much sooner, handle later after we figure out syncronization
+                            staging_buffer.clean(&device);
+                        }
                         device.clean();
                         entry.clean();
                     }
@@ -252,23 +263,27 @@ fn main() {
             .acquire_next_image_index(&present_complete_semaphore)
             .expect("Could not acquire present image");
 
-        draw_context.record(
-            &device,
-            &[present_complete_semaphore],
-            &[rendering_complete_semaphore],
-            &draw_commands_reuse_fence,
-            &[PipelineStages::ColorAttachmentOutput],
-            |device, context| {
-                render_pass.begin(device, context, present_index);
-                graphics_pipeline.bind(device, context);
-                device.set_viewport_and_scissor(context, &swapchain);
-                device.bind_index_buffer(context, &index_buffer);
-                graphics_pipeline.bind_descriptor_set(device, context, &global_descriptor_set);
-                device.draw_indexed(context, compiled_scene.indices.len() as u32);
-                render_pass.end(device, context);
-            },
-        ).expect("Could not record draw context");
+        draw_context
+            .record(
+                &device,
+                &[present_complete_semaphore],
+                &[rendering_complete_semaphore],
+                &draw_commands_reuse_fence,
+                &[PipelineStages::ColorAttachmentOutput],
+                |device, context| {
+                    render_pass.begin(device, context, present_index);
+                    graphics_pipeline.bind(device, context);
+                    device.set_viewport_and_scissor(context, &swapchain);
+                    device.bind_index_buffer(context, &index_buffer);
+                    graphics_pipeline.bind_descriptor_set(device, context, &global_descriptor_set);
+                    device.draw_indexed(context, compiled_scene.indices.len() as u32);
+                    render_pass.end(device, context);
+                },
+            )
+            .expect("Could not record draw context");
 
-        swapchain.present(&device, &[&rendering_complete_semaphore], &[present_index]).expect("Could not present to swapchain");
+        swapchain
+            .present(&device, &[&rendering_complete_semaphore], &[present_index])
+            .expect("Could not present to swapchain");
     });
 }

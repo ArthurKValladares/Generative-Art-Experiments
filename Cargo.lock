@@ -404,6 +404,7 @@ dependencies = [
  "anyhow",
  "ash",
  "ash-window",
+ "bytes",
  "easy-versions",
  "image 0.24.2",
  "math",
