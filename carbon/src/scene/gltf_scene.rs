@@ -91,7 +91,7 @@ impl GltfScene {
                         let mut colors = if let Some(iter) = reader.read_colors(0) {
                             iter.into_rgba_f32().map(|data| data.into()).collect::<Vec<Vec4>>()
                         } else {
-                            vec![Vec4::new(0.5, 0.5, 0.5, 1.0); positions.len()]
+                            vec![Vec4::new(1.0, 1.0, 1.0, 1.0); positions.len()]
                         };
 
                         // Process uvs
