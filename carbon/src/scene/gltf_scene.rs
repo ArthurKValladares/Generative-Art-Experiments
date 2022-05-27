@@ -46,24 +46,42 @@ where
     }
 }
 
+pub struct ImageData {
+    pub width: u32,
+    pub height: u32,
+    pub bytes: Bytes,
+}
+
 pub struct GltfScene {
     file_root: PathBuf,
-    gltf: gltf::Gltf,
+    gltf: gltf::Document,
+    buffers: Vec<gltf::buffer::Data>,
+    images: Vec<ImageData>,
 }
 
 impl GltfScene {
     pub fn new(path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
-        let document = gltf::Gltf::open(path)?;
+        let (document, buffers, images) = gltf::import(path)?;
+        let images = images
+            .into_iter()
+            .map(|image_data| ImageData {
+                width: image_data.width,
+                height: image_data.height,
+                bytes: Bytes::from(build_rgba_buffer(image_data)),
+            })
+            .collect::<Vec<_>>();
         let file_root = path.parent().unwrap_or(Path::new("./"));
         Ok(Self {
             file_root: file_root.to_owned(),
             gltf: document,
+            buffers,
+            images,
         })
     }
 
     pub fn compile(&self) -> Result<CompiledScene, GltfSceneError> {
-        let buffers = self.buffer_data()?;
+        let buffers = self.buffer_data();
 
         // TODO: Have a way to compile other scenes
         if let Some(scene) = self
@@ -89,7 +107,9 @@ impl GltfScene {
 
                         // Process colors
                         let mut colors = if let Some(iter) = reader.read_colors(0) {
-                            iter.into_rgba_f32().map(|data| data.into()).collect::<Vec<Vec4>>()
+                            iter.into_rgba_f32()
+                                .map(|data| data.into())
+                                .collect::<Vec<Vec4>>()
                         } else {
                             vec![Vec4::new(1.0, 1.0, 1.0, 1.0); positions.len()]
                         };
@@ -136,40 +156,55 @@ impl GltfScene {
         }
     }
 
-    pub fn buffer_data(&self) -> Result<Vec<Bytes>, GltfSceneError> {
-        let mut buffer_data = Vec::new();
-        for buffer in self.gltf.buffers() {
-            let mut data = match buffer.source() {
-                gltf::buffer::Source::Bin => Err(GltfSceneError::BinaryBuffer),
-                gltf::buffer::Source::Uri(uri) => read_to_bytes(self.file_root.join(uri)),
-            }?;
-            while data.len() % 4 != 0 {
-                data.push(0);
-            }
-            buffer_data.push(Bytes::from(data));
-        }
-        Ok(buffer_data)
+    pub fn buffer_data(&self) -> &[gltf::buffer::Data] {
+        &self.buffers
     }
 
-    pub fn image_data(&self) -> Result<Vec<((u32, u32), Bytes)>> {
-        let mut image_data = Vec::new();
-        for image in self.gltf.images() {
-            let (dims, data) = match image.source() {
-                gltf::image::Source::View {
-                    view: _,
-                    mime_type: _,
-                } => Err(GltfSceneError::ViewImage),
-                gltf::image::Source::Uri { uri, mime_type: _ } => {
-                    // TODO: Same as in `Image::from_file`, refector. Refactor dims as well
-                    let im = image::load(
-                        BufReader::new(File::open(self.file_root.join(uri))?),
-                        image::ImageFormat::Png,
-                    )?;
-                    Ok((im.dimensions(), im.into_bytes()))
-                }
-            }?;
-            image_data.push((dims, Bytes::from(data)));
+    pub fn image_data(&self) -> &[ImageData] {
+        &self.images
+    }
+}
+
+fn build_rgba_buffer(image: gltf::image::Data) -> Vec<u8> {
+    let mut buffer = Vec::new();
+    let size = image.width * image.height;
+    for index in 0..size {
+        let rgba = get_next_rgba(&image.pixels, image.format, index as usize);
+        buffer.extend_from_slice(&rgba);
+    }
+    buffer
+}
+
+fn get_next_rgba(pixels: &[u8], format: gltf::image::Format, index: usize) -> [u8; 4] {
+    match format {
+        gltf::image::Format::R8 => [pixels[index], 0, 0, std::u8::MAX],
+        gltf::image::Format::R8G8 => [pixels[index * 2], pixels[index * 2 + 1], 0, std::u8::MAX],
+        gltf::image::Format::R8G8B8 => [
+            pixels[index * 3],
+            pixels[index * 3 + 1],
+            pixels[index * 3 + 2],
+            std::u8::MAX,
+        ],
+        gltf::image::Format::B8G8R8 => [
+            pixels[index * 3 + 2],
+            pixels[index * 3 + 1],
+            pixels[index * 3],
+            std::u8::MAX,
+        ],
+        gltf::image::Format::R8G8B8A8 => [
+            pixels[index * 4],
+            pixels[index * 4 + 1],
+            pixels[index * 4 + 2],
+            pixels[index * 4 + 3],
+        ],
+        gltf::image::Format::B8G8R8A8 => [
+            pixels[index * 4 + 2],
+            pixels[index * 4 + 1],
+            pixels[index * 4],
+            pixels[index * 4 + 3],
+        ],
+        _ => {
+            panic!("image format not supported")
         }
-        Ok(image_data)
     }
 }

@@ -1,6 +1,6 @@
 use carbon::{
     camera::{Camera, OrtographicData},
-    scene::GltfScene,
+    scene::{GltfScene},
 };
 use easy_ash::{
     math::vec::{Vec2, Vec4},
@@ -115,17 +115,17 @@ fn main() {
         .expect("Coult not load gltf scene");
     let compiled_scene = gltf_scene.compile().expect("Could not compile Gltf Scene");
 
-    let images = gltf_scene.image_data().expect("Could not load images");
+    let images = gltf_scene.image_data();
     let images_data = images
         .into_iter()
-        .map(|((width, height), bytes)| {
+        .map(|image_data| {
             Image::from_data_and_dims(
                 &device,
                 &setup_context,
                 &setup_commands_reuse_fence,
-                width,
-                height,
-                bytes,
+                image_data.width,
+                image_data.height,
+                &image_data.bytes,
             )
             .expect("Could not crate image")
         })
