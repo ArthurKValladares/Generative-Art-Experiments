@@ -1,13 +1,16 @@
 use carbon::{
     camera::{Camera, OrtographicData},
-    scene::{GltfScene},
+    scene::GltfScene,
 };
 use easy_ash::{
-    math::vec::{Vec2, Vec4},
+    math::{
+        mat::Mat4,
+        vec::{Vec2, Vec3, Vec4},
+    },
     AccessMask, ApiVersion, ApplicationInfo, BindingDesc, Buffer, BufferType, ClearValue, Context,
     DescriptorBufferInfo, DescriptorImageInfo, DescriptorPool, DescriptorSet, DescriptorType,
     Device, Entry, Fence, GraphicsPipeline, GraphicsProgram, Image, ImageLayout,
-    ImageMemoryBarrier, ImageType, InstanceInfo, PipelineStages, RenderPass, Sampler,
+    ImageMemoryBarrier, ImageType, InstanceInfo, PipelineStages, PushConstant, RenderPass, Sampler,
     SamplerFilter, SamplerWrapMode, Semaphore, Shader, ShaderStage, Surface, Swapchain,
 };
 use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowBuilder};
@@ -20,6 +23,12 @@ struct Vertex {
     color: Vec4,
     uv: Vec2,
     pad: Vec2,
+}
+
+#[repr(C)]
+#[derive(Clone, Debug, Copy)]
+struct PushConstantData {
+    model_matrix: Mat4,
 }
 
 fn main() {
@@ -54,6 +63,7 @@ fn main() {
         surface,
         window_size.width,
         window_size.height,
+        true,
     )
     .expect("Could not create swapchain");
     let setup_context = Context::new(&device).expect("Could not create setup context");
@@ -201,18 +211,26 @@ fn main() {
     .expect("Could not create descriptor set");
     global_descriptor_set.update(&device);
 
+    let camera_push_constant = PushConstant {
+        stage: ShaderStage::Vertex,
+        offset: 0,
+        size: std::mem::size_of::<PushConstantData>() as u32,
+    };
+
     let graphics_pipeline = GraphicsPipeline::new(
         &device,
         &swapchain,
         &render_pass,
         &graphics_program,
         &[&global_descriptor_set],
+        &[&camera_push_constant],
     )
     .expect("Could not create graphics pipeline");
 
     let present_complete_semaphore = Semaphore::new(&device).expect("Could not create semaphore");
     let rendering_complete_semaphore = Semaphore::new(&device).expect("Could not create semaphore");
 
+    let mut frame_number: u64 = 0;
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
@@ -276,6 +294,15 @@ fn main() {
                     device.set_viewport_and_scissor(context, &swapchain);
                     device.bind_index_buffer(context, &index_buffer);
                     graphics_pipeline.bind_descriptor_set(device, context, &global_descriptor_set);
+                    device.push_constant(
+                        context,
+                        &graphics_pipeline,
+                        &camera_push_constant,
+                        easy_ash::as_u8_slice(&Mat4::rotate(
+                            frame_number as f32 * 0.004,
+                            Vec3::new(0.0, 1.0, 0.0),
+                        )),
+                    );
                     device.draw_indexed(context, compiled_scene.indices.len() as u32);
                     render_pass.end(device, context);
                 },
@@ -285,5 +312,7 @@ fn main() {
         swapchain
             .present(&device, &[&rendering_complete_semaphore], &[present_index])
             .expect("Could not present to swapchain");
+
+        frame_number += 1;
     });
 }

@@ -21,10 +21,16 @@ layout(set = 0, binding = 2) uniform UniformBufferObject
 layout (location = 0) out vec2 o_uv;
 layout (location = 1) out vec4 o_color;
 
+//push constants block
+layout( push_constant ) uniform constants
+{
+	mat4 model_matrix;
+} PushConstants;
+
 void main() {
     Vertex v=vertices[gl_VertexIndex];
 
     o_uv = v.uv;
     o_color = v.color;
-    gl_Position = ubo.proj * v.pos;
+    gl_Position = PushConstants.model_matrix * ubo.proj * v.pos;
 }
