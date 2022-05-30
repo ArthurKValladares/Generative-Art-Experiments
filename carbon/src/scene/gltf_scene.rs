@@ -1,12 +1,9 @@
 use super::compiled_scene::CompiledScene;
 use anyhow::Result;
 use bytes::Bytes;
-use image::GenericImageView;
 use math::vec::{Vec2, Vec3, Vec4};
 use std::{
-    fs::{self, File},
-    io::{self, BufReader},
-    path::{Path, PathBuf},
+    path::Path,
 };
 use thiserror::Error;
 
@@ -20,19 +17,6 @@ pub enum GltfSceneError {
     IoError(#[from] std::io::Error),
     #[error("Gltf file contained no default scene")]
     NoDefaultScene,
-}
-
-// Thanks to:
-// https://github.com/EmbarkStudios/kajiya/blob/0382cfa57e2eb4cf4816e32fdea50d6ef2c9f263/crates/lib/kajiya-asset/src/import_gltf.rs
-fn read_to_bytes(path: impl AsRef<Path>) -> Result<Vec<u8>, GltfSceneError> {
-    use io::Read;
-    let path = path.as_ref();
-    let file = fs::File::open(path)?;
-    let length = file.metadata().map(|x| x.len() + 1).unwrap_or(0);
-    let mut reader = io::BufReader::new(file);
-    let mut data = Vec::with_capacity(length as usize);
-    reader.read_to_end(&mut data)?;
-    Ok(data)
 }
 
 fn compile_gltf_node<F>(node: &gltf::scene::Node, f: &mut F)
@@ -53,7 +37,6 @@ pub struct ImageData {
 }
 
 pub struct GltfScene {
-    file_root: PathBuf,
     gltf: gltf::Document,
     buffers: Vec<gltf::buffer::Data>,
     images: Vec<ImageData>,
@@ -71,9 +54,7 @@ impl GltfScene {
                 bytes: Bytes::from(build_rgba_buffer(image_data)),
             })
             .collect::<Vec<_>>();
-        let file_root = path.parent().unwrap_or(Path::new("./"));
         Ok(Self {
-            file_root: file_root.to_owned(),
             gltf: document,
             buffers,
             images,
