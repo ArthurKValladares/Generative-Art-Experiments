@@ -86,6 +86,13 @@ impl GltfScene {
                             return;
                         };
 
+                        // Collect normals (required)
+                        let mut normals = if let Some(iter) = reader.read_normals() {
+                            iter.map(|data| data.into()).collect::<Vec<Vec3>>()
+                        } else {
+                            return;
+                        };
+
                         // Process colors
                         let mut colors = if let Some(iter) = reader.read_colors(0) {
                             iter.into_rgba_f32()
@@ -123,6 +130,7 @@ impl GltfScene {
                         // TODO: remove need for mut bindings
                         compiled_scene.positions.append(&mut positions);
                         compiled_scene.colors.append(&mut colors);
+                        compiled_scene.normals.append(&mut normals);
                         compiled_scene.uvs.append(&mut uvs);
                         compiled_scene.indices.append(&mut indices);
                     }

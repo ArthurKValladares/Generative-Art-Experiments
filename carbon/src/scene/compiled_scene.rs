@@ -5,5 +5,6 @@ pub struct CompiledScene {
     pub positions: Vec<Vec3>,
     pub colors: Vec<Vec4>,
     pub uvs: Vec<Vec2>,
+    pub normals: Vec<Vec3>,
     pub indices: Vec<u32>,
 }

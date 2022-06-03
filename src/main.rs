@@ -21,6 +21,7 @@ use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::Windo
 struct Vertex {
     pos: Vec4,
     color: Vec4,
+    normal: Vec4,
     uv: Vec2,
     pad: Vec2,
 }
@@ -69,15 +70,10 @@ fn main() {
     let setup_context = Context::new(&device).expect("Could not create setup context");
     let draw_context = Context::new(&device).expect("Could not create draw context");
 
-    let depth_image = Image::new(
-        &device,
-        swapchain.surface_data.resolution.into(),
-        ImageType::Depth,
-    )
-    .expect("Could not create depth image");
-
     let draw_commands_reuse_fence = Fence::new(&device).expect("Could not create Fence");
     let setup_commands_reuse_fence = Fence::new(&device).expect("Could not create Fence");
+
+    swapchain.transition_depth_image(&device, &setup_context, &setup_commands_reuse_fence).expect("could not transition depth image");
 
     setup_context
         .record(
@@ -88,7 +84,7 @@ fn main() {
             &[],
             |device, context| {
                 let layout_transition_barrier = ImageMemoryBarrier::new(
-                    &depth_image,
+                    &swapchain.depth_image,
                     AccessMask::DepthStencil,
                     ImageLayout::Undefined,
                     ImageLayout::DepthStencil,
@@ -106,7 +102,13 @@ fn main() {
     let mut render_pass = RenderPass::new(
         &device,
         &swapchain,
-        &[ClearValue::Color(Vec4::new(1.0, 0.0, 1.0, 0.0))],
+        &[
+            ClearValue::Color(Vec4::new(1.0, 0.0, 1.0, 0.0)),
+            ClearValue::Depth {
+                depth: 1.0,
+                stencil: 0,
+            },
+        ],
     )
     .expect("Could not create RenderPass");
 
@@ -150,6 +152,7 @@ fn main() {
             ret.push(Vertex {
                 pos: compiled_scene.positions[idx].into(),
                 color: compiled_scene.colors[idx],
+                normal: compiled_scene.normals[idx].into(),
                 uv: compiled_scene.uvs[idx],
                 pad: Default::default(),
             });
@@ -256,7 +259,6 @@ fn main() {
                         global_descriptor_set.clean(&device);
                         descriptor_pool.clean(&device);
                         swapchain.clean(&device);
-                        depth_image.clean(&device);
                         sampler.clean(&device);
                         for (image, staging_buffer) in &images_data {
                             image.clean(&device);
@@ -269,7 +271,7 @@ fn main() {
                 }
                 winit::event::WindowEvent::Resized(new_size) => {
                     device.wait_idle();
-                    swapchain.resize(&entry, &device, new_size.width, new_size.height);
+                    swapchain.resize(&entry, &device, &setup_context, &setup_commands_reuse_fence, new_size.width, new_size.height,);
                     render_pass.resize(&device, &swapchain);
                 }
                 _ => {}
