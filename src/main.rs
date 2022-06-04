@@ -233,7 +233,7 @@ fn main() {
     let present_complete_semaphore = Semaphore::new(&device).expect("Could not create semaphore");
     let rendering_complete_semaphore = Semaphore::new(&device).expect("Could not create semaphore");
 
-    let mut frame_number: u64 = 0;
+    let mut rotate_idx: u64 = 0;
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
@@ -274,6 +274,21 @@ fn main() {
                     swapchain.resize(&entry, &device, &setup_context, &setup_commands_reuse_fence, new_size.width, new_size.height,);
                     render_pass.resize(&device, &swapchain);
                 }
+                winit::event::WindowEvent::KeyboardInput { input, .. } => match input {
+                    winit::event::KeyboardInput {
+                        virtual_keycode,
+                        state,
+                        ..
+                    } => match (virtual_keycode, state) {
+                        (Some(winit::event::VirtualKeyCode::Escape), winit::event::ElementState::Pressed) => {
+                            *control_flow = winit::event_loop::ControlFlow::Exit
+                        }
+                        (Some(winit::event::VirtualKeyCode::R), winit::event::ElementState::Pressed) => {
+                            rotate_idx += 1;
+                        }
+                        _ => {}
+                    },
+                },
                 _ => {}
             },
             _ => {}
@@ -301,7 +316,7 @@ fn main() {
                         &graphics_pipeline,
                         &camera_push_constant,
                         easy_ash::as_u8_slice(&Mat4::rotate(
-                            frame_number as f32 * 0.004,
+                            rotate_idx as f32 * 0.004,
                             Vec3::new(0.0, 1.0, 0.0),
                         )),
                     );
@@ -314,7 +329,5 @@ fn main() {
         swapchain
             .present(&device, &[&rendering_complete_semaphore], &[present_index])
             .expect("Could not present to swapchain");
-
-        frame_number += 1;
     });
 }
