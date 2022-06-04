@@ -123,7 +123,7 @@ fn main() {
 
     // Scene setup start
     // TODO: GLtf camera stuff
-    let gltf_scene = GltfScene::new("glTF-Sample-Models/2.0/BoxTextured/glTF/BoxTextured.gltf")
+    let gltf_scene = GltfScene::new("glTF-Sample-Models/2.0/Corset/glTF/Corset.gltf")
         .expect("Coult not load gltf scene");
     let compiled_scene = gltf_scene.compile().expect("Could not compile Gltf Scene");
 
@@ -163,10 +163,10 @@ fn main() {
         .expect("Could not create vertex buffer");
 
     let camera = Camera::new_ortographic(OrtographicData {
-        left: -1.0,
-        right: 1.0,
-        top: 1.0,
-        bottom: -1.0,
+        left: -0.1,
+        right: 0.1,
+        top: 0.1,
+        bottom: -0.1,
         near: 0.0,
         far: 1.0,
     });

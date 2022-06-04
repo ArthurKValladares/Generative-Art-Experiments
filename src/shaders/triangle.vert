@@ -33,5 +33,5 @@ void main() {
 
     o_uv = v.uv;
     o_color = (vec4(v.normal.rgb, 1.0) * 0.7) +  v.color;
-    gl_Position = PushConstants.model_matrix * ubo.proj * v.pos;
+    gl_Position = PushConstants.model_matrix * ubo.proj * vec4(v.pos.xyz, 1.0);
 }
