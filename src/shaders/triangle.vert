@@ -4,7 +4,6 @@ struct Vertex
 {
 	vec4 pos;
     vec4 color;
-    vec4 normal;
     vec2 uv;
     vec2 pad;
 };
@@ -32,6 +31,6 @@ void main() {
     Vertex v=vertices[gl_VertexIndex];
 
     o_uv = v.uv;
-    o_color = (vec4(v.normal.rgb, 1.0) * 0.7) +  v.color;
+    o_color = v.color;
     gl_Position = PushConstants.model_matrix * ubo.proj * vec4(v.pos.xyz, 1.0);
 }
