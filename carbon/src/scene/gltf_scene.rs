@@ -1,10 +1,10 @@
+use crate::camera::{CameraType, OrtographicData, PerspectiveData};
+
 use super::compiled_scene::CompiledScene;
 use anyhow::Result;
 use bytes::Bytes;
 use math::vec::{Vec2, Vec3, Vec4};
-use std::{
-    path::Path,
-};
+use std::path::Path;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -136,8 +136,32 @@ impl GltfScene {
                     }
                 }
             };
+
             for node in scene.nodes() {
                 compile_gltf_node(&node, &mut process_node);
+            }
+
+            for camera in self.gltf.cameras() {
+                let camera = match camera.projection() {
+                    gltf::camera::Projection::Orthographic(ortho) => {
+                        CameraType::Orthographic(OrtographicData {
+                            left: 0.0,
+                            right: ortho.xmag(),
+                            top: ortho.ymag(),
+                            bottom: 0.0,
+                            near: ortho.znear(),
+                            far: ortho.zfar(),
+                        })
+                    }
+                    gltf::camera::Projection::Perspective(perspective) => {
+                        CameraType::Perspective(PerspectiveData {
+                            aspect_ratio: perspective.aspect_ratio(),
+                            y_fov: perspective.yfov(),
+                            z_far: perspective.zfar(),
+                            z_near: perspective.znear(),
+                        })
+                    }
+                };
             }
             Ok(compiled_scene)
         } else {

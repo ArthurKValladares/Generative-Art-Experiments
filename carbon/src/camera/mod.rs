@@ -2,7 +2,7 @@ use math::mat::Mat4;
 
 // TODO: Perspective camera
 
-pub fn new_ortographic_proj(
+pub fn new_orthographic_proj(
     left: f32,
     right: f32,
     top: f32,
@@ -33,6 +33,7 @@ pub fn new_ortographic_proj(
     ])
 }
 
+#[derive(Debug)]
 pub struct OrtographicData {
     pub left: f32,
     pub right: f32,
@@ -42,28 +43,37 @@ pub struct OrtographicData {
     pub far: f32,
 }
 
+#[derive(Debug)]
+pub struct PerspectiveData {
+    pub aspect_ratio: Option<f32>,
+    pub y_fov: f32,
+    pub z_far: Option<f32>,
+    pub z_near: f32,
+}
+
+#[derive(Debug)]
 pub enum CameraType {
-    Ortographic(OrtographicData),
-    Perspective,
+    Orthographic(OrtographicData),
+    Perspective(PerspectiveData),
 }
 
 impl CameraType {
     pub fn build(self) -> Camera {
         match self {
-            Self::Ortographic(data) => Camera::new_ortographic(data),
-            Self::Perspective => todo!(),
+            Self::Orthographic(data) => Camera::new_orthographic(data),
+            Self::Perspective(_data) => todo!(),
         }
     }
 }
 
 pub enum Camera {
-    Ortographic(Mat4),
+    Orthographic(Mat4),
     Perspective(Mat4),
 }
 
 impl Camera {
-    pub fn new_ortographic(data: OrtographicData) -> Self {
-        Self::Ortographic(new_ortographic_proj(
+    pub fn new_orthographic(data: OrtographicData) -> Self {
+        Self::Orthographic(new_orthographic_proj(
             data.left,
             data.right,
             data.top,
@@ -75,8 +85,21 @@ impl Camera {
 
     pub fn raw_matrix(&self) -> &Mat4 {
         match self {
-            Camera::Ortographic(mat) => mat,
+            Camera::Orthographic(mat) => mat,
             Camera::Perspective(mat) => mat,
         }
+    }
+}
+
+impl Default for Camera {
+    fn default() -> Self {
+        Self::new_orthographic(OrtographicData {
+            left: 0.0,
+            right: 1.0,
+            top: 1.0,
+            bottom: 0.0,
+            near: 0.0,
+            far: 1.0,
+        })
     }
 }

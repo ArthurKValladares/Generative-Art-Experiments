@@ -10,7 +10,7 @@ use easy_ash::{
     AccessMask, ApiVersion, ApplicationInfo, BindingDesc, Buffer, BufferType, ClearValue, Context,
     DescriptorBufferInfo, DescriptorImageInfo, DescriptorPool, DescriptorSet, DescriptorType,
     Device, Entry, Fence, GraphicsPipeline, GraphicsProgram, Image, ImageLayout,
-    ImageMemoryBarrier, ImageType, InstanceInfo, PipelineStages, PushConstant, RenderPass, Sampler,
+    ImageMemoryBarrier, InstanceInfo, PipelineStages, PushConstant, RenderPass, Sampler,
     SamplerFilter, SamplerWrapMode, Semaphore, Shader, ShaderStage, Surface, Swapchain,
 };
 use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowBuilder};
@@ -72,7 +72,9 @@ fn main() {
     let draw_commands_reuse_fence = Fence::new(&device).expect("Could not create Fence");
     let setup_commands_reuse_fence = Fence::new(&device).expect("Could not create Fence");
 
-    swapchain.transition_depth_image(&device, &setup_context, &setup_commands_reuse_fence).expect("could not transition depth image");
+    swapchain
+        .transition_depth_image(&device, &setup_context, &setup_commands_reuse_fence)
+        .expect("could not transition depth image");
 
     setup_context
         .record(
@@ -160,7 +162,7 @@ fn main() {
     let vertex_buffer = Buffer::from_data(&device, BufferType::Storage, &vertex_buffer_data)
         .expect("Could not create vertex buffer");
 
-    let camera = Camera::new_ortographic(OrtographicData {
+    let camera = Camera::new_orthographic(OrtographicData {
         left: -0.1,
         right: 0.1,
         top: 0.1,
@@ -269,7 +271,14 @@ fn main() {
                 }
                 winit::event::WindowEvent::Resized(new_size) => {
                     device.wait_idle();
-                    swapchain.resize(&entry, &device, &setup_context, &setup_commands_reuse_fence, new_size.width, new_size.height,);
+                    swapchain.resize(
+                        &entry,
+                        &device,
+                        &setup_context,
+                        &setup_commands_reuse_fence,
+                        new_size.width,
+                        new_size.height,
+                    );
                     render_pass.resize(&device, &swapchain);
                 }
                 winit::event::WindowEvent::KeyboardInput { input, .. } => match input {
@@ -278,10 +287,14 @@ fn main() {
                         state,
                         ..
                     } => match (virtual_keycode, state) {
-                        (Some(winit::event::VirtualKeyCode::Escape), winit::event::ElementState::Pressed) => {
-                            *control_flow = winit::event_loop::ControlFlow::Exit
-                        }
-                        (Some(winit::event::VirtualKeyCode::R), winit::event::ElementState::Pressed) => {
+                        (
+                            Some(winit::event::VirtualKeyCode::Escape),
+                            winit::event::ElementState::Pressed,
+                        ) => *control_flow = winit::event_loop::ControlFlow::Exit,
+                        (
+                            Some(winit::event::VirtualKeyCode::R),
+                            winit::event::ElementState::Pressed,
+                        ) => {
                             rotate_idx += 1;
                         }
                         _ => {}
