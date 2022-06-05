@@ -14,21 +14,21 @@ pub fn new_orthographic_proj(
         2.0 / (right - left),
         0.0,
         0.0,
-        0.0,
+        -(right + left) / (right - left),
         //
         0.0,
         2.0 / (bottom - top),
         0.0,
-        0.0,
+        -(bottom + top) / (bottom - top),
         //
         0.0,
         0.0,
         1.0 / (far - near),
-        0.0,
-        //
-        -(right + left) / (right - left),
-        -(bottom + top) / (bottom - top),
         -(near) / (far - near),
+        //
+        0.0,
+        0.0,
+        0.0,
         1.0,
     ])
 }

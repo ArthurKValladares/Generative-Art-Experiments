@@ -165,8 +165,8 @@ fn main() {
     let camera = Camera::new_orthographic(OrtographicData {
         left: -0.1,
         right: 0.1,
-        top: 0.1,
-        bottom: -0.1,
+        top: 0.25,
+        bottom: 0.15,
         near: 0.0,
         far: 1.0,
     });
