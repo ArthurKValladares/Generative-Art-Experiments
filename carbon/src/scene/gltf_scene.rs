@@ -81,12 +81,12 @@ impl GltfScene {
 
                         // Process vertex positions
                         let mut positions = if let Some(iter) = reader.read_positions() {
-                            iter.map(|data| data.into()).collect::<Vec<Vec3>>()
+                            iter.map(|data| data.into()).collect::<Vec<Vec4>>()
                         } else {
                             return;
                         };
 
-                        // Collect normals (required)
+                        // Process Normals
                         let mut normals = if let Some(iter) = reader.read_normals() {
                             iter.map(|data| data.into()).collect::<Vec<Vec3>>()
                         } else {

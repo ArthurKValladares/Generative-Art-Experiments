@@ -129,10 +129,10 @@ impl CameraType {
 impl Default for CameraType {
     fn default() -> Self {
         Self::Orthographic(OrtographicData {
-            left: 0.0,
-            right: 1.0,
-            top: 1.0,
-            bottom: 0.0,
+            left: -5.0,
+            right: 5.0,
+            top: 5.0,
+            bottom: -5.0,
             near: 0.0,
             far: 1.0,
         })

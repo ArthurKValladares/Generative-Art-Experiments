@@ -1,5 +1,4 @@
 use carbon::{
-    camera::{CameraProjection, OrtographicData},
     scene::GltfScene,
 };
 use easy_ash::{
@@ -124,7 +123,7 @@ fn main() {
 
     // Scene setup start
     // TODO: GLtf camera stuff
-    let gltf_scene = GltfScene::new("glTF-Sample-Models/2.0/MultiUVTest/glTF/MultiUVTest.gltf")
+    let gltf_scene = GltfScene::new("glTF-Sample-Models/2.0/TwoSidedPlane/glTF/TwoSidedPlane.gltf")
         .expect("Coult not load gltf scene");
     let compiled_scene = gltf_scene.compile().expect("Could not compile Gltf Scene");
 
@@ -151,7 +150,7 @@ fn main() {
         let mut ret: Vec<Vertex> = Vec::with_capacity(compiled_scene.positions.len());
         for idx in 0..compiled_scene.positions.len() {
             ret.push(Vertex {
-                pos: compiled_scene.positions[idx].into(),
+                pos: compiled_scene.positions[idx],
                 color: compiled_scene.colors[idx],
                 uv: compiled_scene.uvs[idx],
                 pad: Default::default(),
