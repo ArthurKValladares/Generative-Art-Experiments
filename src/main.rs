@@ -124,7 +124,7 @@ fn main() {
 
     // Scene setup start
     // TODO: GLtf camera stuff
-    let gltf_scene = GltfScene::new("glTF-Sample-Models/2.0/Corset/glTF/Corset.gltf")
+    let gltf_scene = GltfScene::new("glTF-Sample-Models/2.0/MultiUVTest/glTF/MultiUVTest.gltf")
         .expect("Coult not load gltf scene");
     let compiled_scene = gltf_scene.compile().expect("Could not compile Gltf Scene");
 
@@ -162,11 +162,8 @@ fn main() {
     let vertex_buffer = Buffer::from_data(&device, BufferType::Storage, &vertex_buffer_data)
         .expect("Could not create vertex buffer");
 
-    let camera = compiled_scene
-        .cameras
-        .first()
-        .unwrap()
-        .build(window_size.width as f32, window_size.height as f32);
+    let camera_type = compiled_scene.cameras.first().unwrap();
+    let camera = camera_type.build(window_size.width as f32, window_size.height as f32);
 
     let camera_buffer = Buffer::from_data(
         &device,

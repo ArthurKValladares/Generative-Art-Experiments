@@ -90,7 +90,9 @@ impl GltfScene {
                         let mut normals = if let Some(iter) = reader.read_normals() {
                             iter.map(|data| data.into()).collect::<Vec<Vec3>>()
                         } else {
-                            return;
+                            (0..positions.len())
+                                .map(|_| Vec3::new(0.0, 0.0, 0.0))
+                                .collect::<Vec<Vec3>>()
                         };
 
                         // Process colors
