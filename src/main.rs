@@ -123,7 +123,7 @@ fn main() {
 
     // Scene setup start
     // TODO: GLtf camera stuff
-    let gltf_scene = GltfScene::new("glTF-Sample-Models/2.0/TwoSidedPlane/glTF/TwoSidedPlane.gltf")
+    let gltf_scene = GltfScene::new("glTF-Sample-Models/2.0/BoxTextured/glTF/BoxTextured.gltf")
         .expect("Coult not load gltf scene");
     let compiled_scene = gltf_scene.compile().expect("Could not compile Gltf Scene");
 
@@ -174,10 +174,8 @@ fn main() {
     // Scene setup end
 
     let descriptor_pool = DescriptorPool::new(&device).expect("Could not create descriptor pool");
-    let global_descriptor_set = DescriptorSet::new(
-        &device,
-        &descriptor_pool,
-        &[
+    let bind_desc = {
+        let mut binding_desc = vec![
             BindingDesc::new(
                 DescriptorType::StorageBuffer(DescriptorBufferInfo::new(
                     &vertex_buffer,
@@ -188,14 +186,6 @@ fn main() {
                 ShaderStage::Vertex,
             ),
             BindingDesc::new(
-                DescriptorType::CombinedImageSampler(DescriptorImageInfo::new(
-                    &images_data[0].0, // TODO: actually handle this correctly later
-                    &sampler,
-                )),
-                1,
-                ShaderStage::Fragment,
-            ),
-            BindingDesc::new(
                 DescriptorType::UniformBuffer(DescriptorBufferInfo::new(
                     &camera_buffer,
                     None,
@@ -204,7 +194,23 @@ fn main() {
                 1,
                 ShaderStage::Vertex,
             ),
-        ],
+        ];
+        if !images_data.is_empty() {
+            binding_desc.push(BindingDesc::new(
+                DescriptorType::CombinedImageSampler(DescriptorImageInfo::new(
+                    &images_data[0].0, // TODO: actually handle this correctly later
+                    &sampler,
+                )),
+                1,
+                ShaderStage::Fragment,
+            ));
+        }
+        binding_desc
+    };
+    let global_descriptor_set = DescriptorSet::new(
+        &device,
+        &descriptor_pool,
+        &bind_desc,
     )
     .expect("Could not create descriptor set");
     global_descriptor_set.update(&device);
