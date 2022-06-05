@@ -162,14 +162,12 @@ fn main() {
     let vertex_buffer = Buffer::from_data(&device, BufferType::Storage, &vertex_buffer_data)
         .expect("Could not create vertex buffer");
 
-    let camera = Camera::new_orthographic(OrtographicData {
-        left: -0.1,
-        right: 0.1,
-        top: 0.25,
-        bottom: 0.15,
-        near: 0.0,
-        far: 1.0,
-    });
+    let camera = compiled_scene
+        .cameras
+        .first()
+        .unwrap()
+        .build(window_size.width as f32, window_size.height as f32);
+
     let camera_buffer = Buffer::from_data(
         &device,
         BufferType::Uniform,
@@ -327,7 +325,7 @@ fn main() {
                         &graphics_pipeline,
                         &camera_push_constant,
                         easy_ash::as_u8_slice(&Mat4::rotate(
-                            rotate_idx as f32 * 0.004,
+                            rotate_idx as f32 * 0.04,
                             Vec3::new(0.0, 1.0, 0.0),
                         )),
                     );

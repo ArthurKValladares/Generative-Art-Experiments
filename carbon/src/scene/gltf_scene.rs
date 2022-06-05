@@ -162,6 +162,10 @@ impl GltfScene {
                         })
                     }
                 };
+                compiled_scene.cameras.push(camera);
+            }
+            if compiled_scene.cameras.is_empty() {
+                compiled_scene.cameras.push(Default::default());
             }
             Ok(compiled_scene)
         } else {
