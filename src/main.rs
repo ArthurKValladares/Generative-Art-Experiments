@@ -1,5 +1,5 @@
 use carbon::{
-    camera::{Camera, OrtographicData},
+    camera::{CameraProjection, OrtographicData},
     scene::GltfScene,
 };
 use easy_ash::{
@@ -164,11 +164,12 @@ fn main() {
 
     let camera_type = compiled_scene.cameras.first().unwrap();
     let camera = camera_type.build(window_size.width as f32, window_size.height as f32);
+    let camera_matrices = camera.get_matrices();
 
     let camera_buffer = Buffer::from_data(
         &device,
         BufferType::Uniform,
-        std::slice::from_ref(camera.raw_matrix()),
+        std::slice::from_ref(&camera_matrices),
     )
     .expect("Could not create vertex buffer");
     // Scene setup end

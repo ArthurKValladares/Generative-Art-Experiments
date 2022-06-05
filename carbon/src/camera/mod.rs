@@ -1,6 +1,6 @@
-use math::mat::Mat4;
+use math::{mat::Mat4, vec::Vec3};
 
-pub fn new_orthographic_proj(
+fn new_orthographic_proj(
     left: f32,
     right: f32,
     top: f32,
@@ -31,7 +31,7 @@ pub fn new_orthographic_proj(
     ])
 }
 
-pub fn new_infinite_perspective_proj(aspect_ratio: f32, y_fov: f32, z_near: f32) -> Mat4 {
+fn new_infinite_perspective_proj(aspect_ratio: f32, y_fov: f32, z_near: f32) -> Mat4 {
     let g = 1.0 / (y_fov * 0.5).tan();
     let e = 1.0 - 10e-6;
     Mat4::from_rows_array([
@@ -54,6 +54,32 @@ pub fn new_infinite_perspective_proj(aspect_ratio: f32, y_fov: f32, z_near: f32)
         0.0,
         1.0,
         0.0,
+    ])
+}
+
+fn look_at(eye: Vec3, at: Vec3, up: Vec3) -> Mat4 {
+    let z_axis = (at - eye).normalized();
+    let x_axis = z_axis.cross(&up).normalized();
+    let y_axis = x_axis.cross(&z_axis);
+    let z_axis = z_axis.negate();
+
+    Mat4::from_rows_array([
+        x_axis.x(),
+        x_axis.y(),
+        x_axis.z(),
+        -x_axis.dot(&eye), //
+        y_axis.x(),
+        y_axis.y(),
+        y_axis.z(),
+        -y_axis.dot(&eye), //
+        z_axis.x(),
+        z_axis.y(),
+        z_axis.z(),
+        -z_axis.dot(&eye), //
+        0.0,
+        0.0,
+        0.0,
+        1.0,
     ])
 }
 
@@ -82,10 +108,20 @@ pub enum CameraType {
 }
 
 impl CameraType {
-    pub fn build(&self, window_width: f32, window_height: f32) -> Camera {
+    pub fn projection(&self, window_width: f32, window_height: f32) -> CameraProjection {
         match self {
-            Self::Orthographic(data) => Camera::new_orthographic(data),
-            Self::Perspective(data) => Camera::new_perspective(data, window_width, window_height),
+            Self::Orthographic(data) => CameraProjection::new_orthographic(data),
+            Self::Perspective(data) => {
+                CameraProjection::new_perspective(data, window_width, window_height)
+            }
+        }
+    }
+
+    pub fn build(&self, window_width: f32, window_height: f32) -> Camera {
+        let proj = Self::projection(&self, window_width, window_height);
+        Camera {
+            pos: Default::default(),
+            proj,
         }
     }
 }
@@ -98,18 +134,18 @@ impl Default for CameraType {
             top: 1.0,
             bottom: 0.0,
             near: 0.0,
-            far: 100.0,
+            far: 1.0,
         })
     }
 }
 
 #[derive(Debug)]
-pub enum Camera {
+pub enum CameraProjection {
     Orthographic(Mat4),
     Perspective(Mat4),
 }
 
-impl Camera {
+impl CameraProjection {
     pub fn new_orthographic(data: &OrtographicData) -> Self {
         Self::Orthographic(new_orthographic_proj(
             data.left,
@@ -129,14 +165,46 @@ impl Camera {
 
     pub fn raw_matrix(&self) -> &Mat4 {
         match self {
-            Camera::Orthographic(mat) => mat,
-            Camera::Perspective(mat) => mat,
+            CameraProjection::Orthographic(mat) => mat,
+            CameraProjection::Perspective(mat) => mat,
         }
     }
 }
 
+impl Default for CameraProjection {
+    fn default() -> Self {
+        CameraType::default().projection(1000.0, 1000.0)
+    }
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
+pub struct CameraMatrices {
+    view: Mat4,
+    proj: Mat4,
+}
+
+#[derive(Debug)]
+pub struct Camera {
+    // TODO: This can be better later, have a fron vector instead of looking at 0,0,0
+    pos: Vec3,
+    proj: CameraProjection,
+}
+
 impl Default for Camera {
     fn default() -> Self {
-        CameraType::default().build(1000.0, 1000.0)
+        Self {
+            pos: Default::default(),
+            proj: Default::default(),
+        }
+    }
+}
+
+impl Camera {
+    pub fn get_matrices(&self) -> CameraMatrices {
+        let view = look_at(self.pos, Vec3::zero(), Vec3::new(0.0, 1.0, 0.0));
+        // TODO: Get rid of clone, calculate matrix on demand
+        let proj = self.proj.raw_matrix().clone();
+        CameraMatrices { view, proj }
     }
 }
