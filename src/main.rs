@@ -1,6 +1,4 @@
-use carbon::{
-    scene::GltfScene,
-};
+use carbon::scene::GltfScene;
 use easy_ash::{
     math::{
         mat::Mat4,
@@ -207,12 +205,8 @@ fn main() {
         }
         binding_desc
     };
-    let global_descriptor_set = DescriptorSet::new(
-        &device,
-        &descriptor_pool,
-        &bind_desc,
-    )
-    .expect("Could not create descriptor set");
+    let global_descriptor_set = DescriptorSet::new(&device, &descriptor_pool, &bind_desc)
+        .expect("Could not create descriptor set");
     global_descriptor_set.update(&device);
 
     let camera_push_constant = PushConstant {
@@ -245,7 +239,7 @@ fn main() {
                 winit::event::WindowEvent::CloseRequested => {
                     *control_flow = winit::event_loop::ControlFlow::Exit;
 
-                    device.wait_idle();
+                    device.wait_idle().expect("Could not wait on GPU work");
                     unsafe {
                         graphics_pipeline.clean(&device);
                         graphics_program.clean(&device);
@@ -271,23 +265,28 @@ fn main() {
                     }
                 }
                 winit::event::WindowEvent::Resized(new_size) => {
-                    device.wait_idle();
-                    swapchain.resize(
-                        &entry,
-                        &device,
-                        &setup_context,
-                        &setup_commands_reuse_fence,
-                        new_size.width,
-                        new_size.height,
-                    );
-                    render_pass.resize(&device, &swapchain);
+                    device.wait_idle().expect("Could not wait on GPU work");
+                    swapchain
+                        .resize(
+                            &entry,
+                            &device,
+                            &setup_context,
+                            &setup_commands_reuse_fence,
+                            new_size.width,
+                            new_size.height,
+                        )
+                        .expect("Could not resize swapchain");
+                    render_pass
+                        .resize(&device, &swapchain)
+                        .expect("Could not resize RenderPass");
                 }
-                winit::event::WindowEvent::KeyboardInput { input, .. } => match input {
-                    winit::event::KeyboardInput {
-                        virtual_keycode,
+                winit::event::WindowEvent::KeyboardInput { input, .. } => {
+                    let winit::event::KeyboardInput {
                         state,
+                        virtual_keycode,
                         ..
-                    } => match (virtual_keycode, state) {
+                    } = input;
+                    match (virtual_keycode, state) {
                         (
                             Some(winit::event::VirtualKeyCode::Escape),
                             winit::event::ElementState::Pressed,
@@ -299,47 +298,54 @@ fn main() {
                             rotate_idx += 1;
                         }
                         _ => {}
-                    },
-                },
+                    }
+                }
                 _ => {}
             },
+            Event::RedrawRequested(_window_id) => {
+                let present_index = swapchain
+                    .acquire_next_image_index(&present_complete_semaphore)
+                    .expect("Could not acquire present image");
+
+                draw_context
+                    .record(
+                        &device,
+                        &[present_complete_semaphore],
+                        &[rendering_complete_semaphore],
+                        &draw_commands_reuse_fence,
+                        &[PipelineStages::ColorAttachmentOutput],
+                        |device, context| {
+                            render_pass.begin(device, context, present_index);
+                            graphics_pipeline.bind(device, context);
+                            device.set_viewport_and_scissor(context, &swapchain);
+                            device.bind_index_buffer(context, &index_buffer);
+                            graphics_pipeline.bind_descriptor_set(
+                                device,
+                                context,
+                                &global_descriptor_set,
+                            );
+                            device.push_constant(
+                                context,
+                                &graphics_pipeline,
+                                &camera_push_constant,
+                                easy_ash::as_u8_slice(&Mat4::rotate(
+                                    rotate_idx as f32 * 0.04,
+                                    Vec3::new(0.0, 1.0, 0.0),
+                                )),
+                            );
+                            device.draw_indexed(context, compiled_scene.indices.len() as u32);
+                            render_pass.end(device, context);
+                        },
+                    )
+                    .expect("Could not record draw context");
+
+                swapchain
+                    .present(&device, &[&rendering_complete_semaphore], &[present_index])
+                    .expect("Could not present to swapchain");
+            }
             _ => {}
         }
-
-        let present_index = swapchain
-            .acquire_next_image_index(&present_complete_semaphore)
-            .expect("Could not acquire present image");
-
-        draw_context
-            .record(
-                &device,
-                &[present_complete_semaphore],
-                &[rendering_complete_semaphore],
-                &draw_commands_reuse_fence,
-                &[PipelineStages::ColorAttachmentOutput],
-                |device, context| {
-                    render_pass.begin(device, context, present_index);
-                    graphics_pipeline.bind(device, context);
-                    device.set_viewport_and_scissor(context, &swapchain);
-                    device.bind_index_buffer(context, &index_buffer);
-                    graphics_pipeline.bind_descriptor_set(device, context, &global_descriptor_set);
-                    device.push_constant(
-                        context,
-                        &graphics_pipeline,
-                        &camera_push_constant,
-                        easy_ash::as_u8_slice(&Mat4::rotate(
-                            rotate_idx as f32 * 0.04,
-                            Vec3::new(0.0, 1.0, 0.0),
-                        )),
-                    );
-                    device.draw_indexed(context, compiled_scene.indices.len() as u32);
-                    render_pass.end(device, context);
-                },
-            )
-            .expect("Could not record draw context");
-
-        swapchain
-            .present(&device, &[&rendering_complete_semaphore], &[present_index])
-            .expect("Could not present to swapchain");
+        // TODO: Don't do this unconditionally?
+        window.request_redraw();
     });
 }
