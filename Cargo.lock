@@ -114,6 +114,7 @@ dependencies = [
  "image 0.24.2",
  "math",
  "thiserror",
+ "winit",
 ]
 
 [[package]]
@@ -747,7 +748,7 @@ dependencies = [
 [[package]]
 name = "math"
 version = "0.1.0"
-source = "git+https://github.com/ArthurKValladares/Yet-Another-Math-Lib#9d099418cb6a687ad04e1e167e4ecf14ec63295f"
+source = "git+https://github.com/ArthurKValladares/Yet-Another-Math-Lib#9affe79b3e1dd7d9472c27f311ef5e002d1862d8"
 
 [[package]]
 name = "memchr"

@@ -1,4 +1,4 @@
-use carbon::scene::GltfScene;
+use carbon::{context::FrameContext, input::keyboard::KeyboardState, scene::GltfScene};
 use easy_ash::{
     math::{
         mat::Mat4,
@@ -10,7 +10,12 @@ use easy_ash::{
     ImageMemoryBarrier, InstanceInfo, PipelineStages, PushConstant, RenderPass, Sampler,
     SamplerFilter, SamplerWrapMode, Semaphore, Shader, ShaderStage, Surface, Swapchain,
 };
-use winit::{dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowBuilder};
+use winit::{
+    dpi::LogicalSize,
+    event::{Event, VirtualKeyCode},
+    event_loop::EventLoop,
+    window::WindowBuilder,
+};
 
 // TODO: This will be defined in the shader later
 #[repr(C)]
@@ -228,8 +233,10 @@ fn main() {
     let present_complete_semaphore = Semaphore::new(&device).expect("Could not create semaphore");
     let rendering_complete_semaphore = Semaphore::new(&device).expect("Could not create semaphore");
 
+    let mut keyboard_state = KeyboardState::default();
     let mut rotate_idx: u64 = 0;
     event_loop.run(move |event, _, control_flow| {
+        let mut frame_context = FrameContext::default();
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
             Event::WindowEvent {
@@ -281,24 +288,7 @@ fn main() {
                         .expect("Could not resize RenderPass");
                 }
                 winit::event::WindowEvent::KeyboardInput { input, .. } => {
-                    let winit::event::KeyboardInput {
-                        state,
-                        virtual_keycode,
-                        ..
-                    } = input;
-                    match (virtual_keycode, state) {
-                        (
-                            Some(winit::event::VirtualKeyCode::Escape),
-                            winit::event::ElementState::Pressed,
-                        ) => *control_flow = winit::event_loop::ControlFlow::Exit,
-                        (
-                            Some(winit::event::VirtualKeyCode::R),
-                            winit::event::ElementState::Pressed,
-                        ) => {
-                            rotate_idx += 1;
-                        }
-                        _ => {}
-                    }
+                    frame_context.keyboard_input = Some(input);
                 }
                 _ => {}
             },
@@ -329,7 +319,7 @@ fn main() {
                                 &graphics_pipeline,
                                 &camera_push_constant,
                                 easy_ash::as_u8_slice(&Mat4::rotate(
-                                    rotate_idx as f32 * 0.04,
+                                    rotate_idx as f32 * 0.004,
                                     Vec3::new(0.0, 1.0, 0.0),
                                 )),
                             );
@@ -347,5 +337,12 @@ fn main() {
         }
         // TODO: Don't do this unconditionally?
         window.request_redraw();
+        keyboard_state.update(&frame_context);
+        if keyboard_state.is_down(VirtualKeyCode::R) {
+            rotate_idx += 1;
+        }
+        if keyboard_state.is_down(VirtualKeyCode::Escape) {
+            *control_flow = winit::event_loop::ControlFlow::Exit;
+        }
     });
 }
