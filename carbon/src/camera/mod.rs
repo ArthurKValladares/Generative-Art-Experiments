@@ -8,33 +8,36 @@ fn new_orthographic_proj(
     near: f32,
     far: f32,
 ) -> Mat4 {
-    Mat4::from_rows_array([
-        2.0 / (right - left),
+    let w_inv = 1.0 / (right - left);
+    let h_inv = 1.0 / (bottom - top);
+    let d_inv = 1.0 / (far - near);
+    Mat4::from_data(
+        2.0 * w_inv,
         0.0,
         0.0,
-        -(right + left) / (right - left),
+        -(right + left) * w_inv,
         //
         0.0,
-        2.0 / (bottom - top),
+        2.0 * h_inv,
         0.0,
-        -(bottom + top) / (bottom - top),
+        -(bottom + top) * h_inv,
         //
         0.0,
         0.0,
-        1.0 / (far - near),
-        -(near) / (far - near),
+        d_inv,
+        -near * d_inv,
         //
-        0.0,
         0.0,
         0.0,
         1.0,
-    ])
+        0.0,
+    )
 }
 
 fn new_infinite_perspective_proj(aspect_ratio: f32, y_fov: f32, z_near: f32) -> Mat4 {
     let g = 1.0 / (y_fov * 0.5).tan();
     let e = 1.0 - 10e-6;
-    Mat4::from_rows_array([
+    Mat4::from_data(
         g / aspect_ratio,
         0.0,
         0.0,
@@ -54,33 +57,32 @@ fn new_infinite_perspective_proj(aspect_ratio: f32, y_fov: f32, z_near: f32) -> 
         0.0,
         1.0,
         0.0,
-    ])
+    )
 }
 
-fn look_at(eye: Vec3, at: Vec3, up: Vec3) -> Mat4 {
-    let z_axis = (at - eye).normalized();
-    let x_axis = z_axis.cross(&up).normalized();
-    let y_axis = x_axis.cross(&z_axis);
-    let z_axis = z_axis.negate();
-
-    Mat4::from_rows_array([
-        x_axis.x(),
-        x_axis.y(),
-        x_axis.z(),
-        -x_axis.dot(&eye), //
-        y_axis.x(),
-        y_axis.y(),
-        y_axis.z(),
-        -y_axis.dot(&eye), //
-        z_axis.x(),
-        z_axis.y(),
-        z_axis.z(),
-        -z_axis.dot(&eye), //
+fn look_at(eye: Vec3, at: Vec3, world_up: Vec3) -> Mat4 {
+    let forward = (at - eye).normalized();
+    let right = world_up.cross(&forward).normalized();
+    let up = right.cross(&forward);
+    // TODO: Still wrong
+    Mat4::from_data(
+        right.x(),
+        right.y(),
+        right.z(),
         0.0,
+        up.x(),
+        up.y(),
+        up.z(),
         0.0,
+        forward.x(),
+        forward.y(),
+        forward.z(),
         0.0,
+        eye.x(),
+        eye.y(),
+        eye.z(),
         1.0,
-    ])
+    )
 }
 
 #[derive(Debug)]
