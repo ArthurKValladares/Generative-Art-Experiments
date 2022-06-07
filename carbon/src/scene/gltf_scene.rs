@@ -1,4 +1,4 @@
-use crate::camera::{CameraType, OrtographicData, PerspectiveData};
+use crate::camera::{Camera, CameraType, OrtographicData, PerspectiveData};
 
 use super::compiled_scene::CompiledScene;
 use anyhow::Result;
@@ -144,7 +144,7 @@ impl GltfScene {
             }
 
             for camera in self.gltf.cameras() {
-                let camera = match camera.projection() {
+                let camera_type = match camera.projection() {
                     gltf::camera::Projection::Orthographic(ortho) => {
                         CameraType::Orthographic(OrtographicData {
                             left: 0.0,
@@ -164,7 +164,7 @@ impl GltfScene {
                         })
                     }
                 };
-                compiled_scene.cameras.push(camera);
+                compiled_scene.cameras.push(Camera::from_type(camera_type));
             }
             if compiled_scene.cameras.is_empty() {
                 compiled_scene.cameras.push(Default::default());

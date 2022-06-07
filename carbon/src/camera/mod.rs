@@ -116,14 +116,6 @@ impl CameraType {
             }
         }
     }
-
-    pub fn build(&self, window_width: f32, window_height: f32) -> Camera {
-        let proj = Self::projection(&self, window_width, window_height);
-        Camera {
-            pos: Default::default(),
-            proj,
-        }
-    }
 }
 
 impl Default for CameraType {
@@ -163,7 +155,7 @@ impl CameraProjection {
         Self::Perspective(mat)
     }
 
-    pub fn raw_matrix(&self) -> &Mat4 {
+    pub fn to_raw_matrix(self) -> Mat4 {
         match self {
             CameraProjection::Orthographic(mat) => mat,
             CameraProjection::Perspective(mat) => mat,
@@ -186,25 +178,34 @@ pub struct CameraMatrices {
 
 #[derive(Debug)]
 pub struct Camera {
-    // TODO: This can be better later, have a fron vector instead of looking at 0,0,0
     pos: Vec3,
-    proj: CameraProjection,
+    ty: CameraType,
 }
 
 impl Default for Camera {
     fn default() -> Self {
         Self {
             pos: Default::default(),
-            proj: Default::default(),
+            ty: Default::default(),
         }
     }
 }
 
 impl Camera {
-    pub fn get_matrices(&self) -> CameraMatrices {
+    pub fn from_type(ty: CameraType) -> Self {
+        Self {
+            pos: Default::default(),
+            ty,
+        }
+    }
+
+    pub fn get_matrices(&self, window_width: f32, window_height: f32) -> CameraMatrices {
+        // TODO: This can be better later, have a from vector instead of looking at 0,0,0
         let view = look_at(self.pos, Vec3::zero(), Vec3::new(0.0, 1.0, 0.0));
-        // TODO: Get rid of clone, calculate matrix on demand
-        let proj = self.proj.raw_matrix().clone();
+        let proj = self
+            .ty
+            .projection(window_width, window_height)
+            .to_raw_matrix();
         CameraMatrices { view, proj }
     }
 }

@@ -1,4 +1,4 @@
-use crate::camera::CameraType;
+use crate::camera::Camera;
 use math::vec::{Vec2, Vec3, Vec4};
 
 #[derive(Debug, Default)]
@@ -8,5 +8,5 @@ pub struct CompiledScene {
     pub uvs: Vec<Vec2>,
     pub normals: Vec<Vec3>,
     pub indices: Vec<u32>,
-    pub cameras: Vec<CameraType>,
+    pub cameras: Vec<Camera>,
 }

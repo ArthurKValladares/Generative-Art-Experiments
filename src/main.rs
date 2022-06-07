@@ -1,4 +1,6 @@
-use carbon::{context::FrameContext, input::keyboard::KeyboardState, scene::GltfScene};
+use carbon::{
+    camera::Camera, context::FrameContext, input::keyboard::KeyboardState, scene::GltfScene,
+};
 use easy_ash::{
     math::{
         mat::Mat4,
@@ -128,7 +130,7 @@ fn main() {
     // TODO: GLtf camera stuff
     let gltf_scene = GltfScene::new("glTF-Sample-Models/2.0/BoxTextured/glTF/BoxTextured.gltf")
         .expect("Coult not load gltf scene");
-    let compiled_scene = gltf_scene.compile().expect("Could not compile Gltf Scene");
+    let mut compiled_scene = gltf_scene.compile().expect("Could not compile Gltf Scene");
 
     let images = gltf_scene.image_data();
     let images_data = images
@@ -164,9 +166,8 @@ fn main() {
     let vertex_buffer = Buffer::from_data(&device, BufferType::Storage, &vertex_buffer_data)
         .expect("Could not create vertex buffer");
 
-    let camera_type = compiled_scene.cameras.first().unwrap();
-    let camera = camera_type.build(window_size.width as f32, window_size.height as f32);
-    let camera_matrices = camera.get_matrices();
+    let camera = compiled_scene.cameras.pop().unwrap();
+    let camera_matrices = camera.get_matrices(window_size.width as f32, window_size.height as f32);
 
     let camera_buffer = Buffer::from_data(
         &device,
@@ -343,6 +344,9 @@ fn main() {
         }
         if keyboard_state.is_down(VirtualKeyCode::Escape) {
             *control_flow = winit::event_loop::ControlFlow::Exit;
+        }
+        if keyboard_state.is_down(VirtualKeyCode::W) {
+            println!("Camera logic goes here");
         }
     });
 }
