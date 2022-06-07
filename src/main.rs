@@ -166,7 +166,7 @@ fn main() {
     let vertex_buffer = Buffer::from_data(&device, BufferType::Storage, &vertex_buffer_data)
         .expect("Could not create vertex buffer");
 
-    let camera = compiled_scene.cameras.pop().unwrap();
+    let mut camera = compiled_scene.cameras.pop().unwrap();
     let camera_matrices = camera.get_matrices(window_size.width as f32, window_size.height as f32);
 
     let camera_buffer = Buffer::from_data(
@@ -234,8 +234,10 @@ fn main() {
     let present_complete_semaphore = Semaphore::new(&device).expect("Could not create semaphore");
     let rendering_complete_semaphore = Semaphore::new(&device).expect("Could not create semaphore");
 
+    // TODO: Cleanup a bunch of this stuff
     let mut keyboard_state = KeyboardState::default();
     let mut rotate_idx: u64 = 0;
+    let mut camera_speed: f32 = 0.01;
     event_loop.run(move |event, _, control_flow| {
         let mut frame_context = FrameContext::default();
         *control_flow = winit::event_loop::ControlFlow::Poll;
@@ -345,8 +347,51 @@ fn main() {
         if keyboard_state.is_down(VirtualKeyCode::Escape) {
             *control_flow = winit::event_loop::ControlFlow::Exit;
         }
+
+        if keyboard_state.is_down(VirtualKeyCode::P) {
+            camera_speed += 0.01;
+        }
+        if keyboard_state.is_down(VirtualKeyCode::M) {
+            camera_speed -= 0.01;
+            camera_speed = camera_speed.max(0.0);
+        }
+
+        let mut updated_camera = false;
         if keyboard_state.is_down(VirtualKeyCode::W) {
-            println!("Camera logic goes here");
+            camera.update_position(Vec3::new(1.0, 0.0, 0.0) * camera_speed);
+            updated_camera = true;
+        }
+        if keyboard_state.is_down(VirtualKeyCode::W) {
+            camera.update_position(Vec3::new(-1.0, 0.0, 0.0) * camera_speed);
+            updated_camera = true;
+        }
+
+        if keyboard_state.is_down(VirtualKeyCode::A) {
+            camera.update_position(Vec3::new(0.00, 0.0, -1.0) * camera_speed);
+            updated_camera = true;
+        }
+        if keyboard_state.is_down(VirtualKeyCode::D) {
+            camera.update_position(Vec3::new(0.00, 0.0, 1.0) * camera_speed);
+            updated_camera = true;
+        }
+
+        if keyboard_state.is_down(VirtualKeyCode::Space) {
+            camera.update_position(Vec3::new(0.00, 1.0, 0.0) * camera_speed);
+            updated_camera = true;
+        }
+        if keyboard_state.is_down(VirtualKeyCode::LShift) {
+            camera.update_position(Vec3::new(0.00, -1.0, 0.0) * camera_speed);
+            updated_camera = true;
+        }
+        if updated_camera {
+            println!("Speed: {} Pos: {:?}", camera_speed, camera.pos());
+
+            let camera_matrices =
+                camera.get_matrices(window_size.width as f32, window_size.height as f32);
+
+            camera_buffer
+                .copy_data(std::slice::from_ref(&camera_matrices))
+                .expect("Could not create vertex buffer");
         }
     });
 }

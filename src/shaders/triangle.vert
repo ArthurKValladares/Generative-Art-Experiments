@@ -33,5 +33,5 @@ void main() {
 
     o_uv = v.uv;
     o_color = v.color;
-    gl_Position = ubo.proj * PushConstants.model_matrix * v.pos;
+    gl_Position = ubo.proj * ubo.view * PushConstants.model_matrix * v.pos;
 }

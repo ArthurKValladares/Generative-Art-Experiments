@@ -199,6 +199,14 @@ impl Camera {
         }
     }
 
+    pub fn pos(&self) -> &Vec3 {
+        &self.pos
+    }
+
+    pub fn update_position(&mut self, translation: Vec3) {
+        self.pos += translation;
+    }
+
     pub fn get_matrices(&self, window_width: f32, window_height: f32) -> CameraMatrices {
         // TODO: This can be better later, have a from vector instead of looking at 0,0,0
         let view = look_at(self.pos, Vec3::zero(), Vec3::new(0.0, 1.0, 0.0));
