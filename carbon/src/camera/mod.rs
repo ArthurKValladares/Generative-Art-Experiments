@@ -3,8 +3,8 @@ use math::{mat::Mat4, vec::Vec3};
 fn new_orthographic_proj(
     left: f32,
     right: f32,
-    top: f32,
     bottom: f32,
+    top: f32,
     near: f32,
     far: f32,
 ) -> Mat4 {
@@ -36,7 +36,6 @@ fn new_orthographic_proj(
 
 fn new_infinite_perspective_proj(aspect_ratio: f32, y_fov: f32, z_near: f32) -> Mat4 {
     let g = 1.0 / (y_fov * 0.5).tan();
-    let e = 1.0 - 10e-6;
     Mat4::from_data(
         g / aspect_ratio,
         0.0,
@@ -50,12 +49,12 @@ fn new_infinite_perspective_proj(aspect_ratio: f32, y_fov: f32, z_near: f32) -> 
         //
         0.0,
         0.0,
-        e,
-        -z_near * e,
+        -1.0,
+        -1.0,
         //
         0.0,
         0.0,
-        1.0,
+        -z_near,
         0.0,
     )
 }
@@ -153,13 +152,13 @@ impl CameraType {
 
 #[derive(Debug)]
 pub enum CameraProjection {
-    Orthographic(glam::Mat4),
-    Perspective(glam::Mat4),
+    Orthographic(Mat4),
+    Perspective(Mat4),
 }
 
 impl CameraProjection {
     pub fn new_orthographic(data: &OrtographicData) -> Self {
-        Self::Orthographic(glam::Mat4::orthographic_rh(
+        Self::Orthographic(new_orthographic_proj(
             data.left,
             data.right,
             data.bottom,
@@ -171,11 +170,11 @@ impl CameraProjection {
 
     pub fn new_perspective(data: &PerspectiveData, window_width: f32, window_height: f32) -> Self {
         let aspect_ratio = data.aspect_ratio.unwrap_or(window_width / window_height);
-        let mat = glam::Mat4::perspective_infinite_rh(data.y_fov, aspect_ratio, data.z_near);
+        let mat = new_infinite_perspective_proj(aspect_ratio, data.y_fov, data.z_near);
         Self::Perspective(mat)
     }
 
-    pub fn to_raw_matrix(self) -> glam::Mat4 {
+    pub fn to_raw_matrix(self) -> Mat4 {
         match self {
             CameraProjection::Orthographic(mat) => mat,
             CameraProjection::Perspective(mat) => mat,
@@ -187,7 +186,7 @@ impl CameraProjection {
 #[derive(Copy, Clone, Debug)]
 pub struct CameraMatrices {
     view: glam::Mat4,
-    proj: glam::Mat4,
+    proj: Mat4,
 }
 
 #[derive(Debug)]
