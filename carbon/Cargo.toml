@@ -11,4 +11,3 @@ thiserror = "1.0"
 image = "0.24"
 math = { git = "https://github.com/ArthurKValladares/Yet-Another-Math-Lib" }
 winit = "0.26"
-glam = "0.20.5"

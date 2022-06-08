@@ -59,29 +59,33 @@ fn new_infinite_perspective_proj(aspect_ratio: f32, y_fov: f32, z_near: f32) -> 
     )
 }
 
-fn look_at(eye: Vec3, at: Vec3, world_up: Vec3) -> Mat4 {
-    let forward = (at - eye).normalized();
-    let right = world_up.cross(&forward).normalized();
-    let up = right.cross(&forward);
-    // TODO: Still wrong
+fn look_to(eye: Vec3, dir: Vec3, world_up: Vec3) -> Mat4 {
+    let f = dir.normalized();
+    let s = world_up.cross(&f).normalized();
+    let u = f.cross(&s);
+    
     Mat4::from_data(
-        right.x(),
-        right.y(),
-        right.z(),
+        s.x(),
+        u.x(),
+        f.x(),
         0.0,
-        up.x(),
-        up.y(),
-        up.z(),
+        s.y(),
+        u.y(),
+        f.y(),
         0.0,
-        forward.x(),
-        forward.y(),
-        forward.z(),
+        s.z(),
+        u.z(),
+        f.z(),
         0.0,
-        eye.x(),
-        eye.y(),
-        eye.z(),
+        -s.dot(&eye),
+        -u.dot(&eye),
+        -f.dot(&eye),
         1.0,
     )
+}
+
+fn look_at(eye: Vec3, at: Vec3, world_up: Vec3) -> Mat4 {
+    look_to(eye, eye - at, world_up)
 }
 
 #[derive(Debug)]
@@ -185,7 +189,7 @@ impl CameraProjection {
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct CameraMatrices {
-    view: glam::Mat4,
+    view: Mat4,
     proj: Mat4,
 }
 
@@ -215,12 +219,12 @@ impl Camera {
 
     pub fn get_matrices(&self, window_width: f32, window_height: f32) -> CameraMatrices {
         // TODO: This can be better later, have a from vector instead of looking at 0,0,0
-        let eye = glam::Vec3::new(self.pos.x(), self.pos.y(), self.pos.z());
-        let front = glam::Vec3::new(self.front.x(), self.front.y(), self.front.z());
-        let view = glam::Mat4::look_at_rh(
+        let eye = self.pos;
+        let front = self.front;
+        let view = look_at(
             eye,
             eye + front,
-            glam::Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
         );
         let proj = self
             .ty
