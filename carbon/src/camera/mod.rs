@@ -97,7 +97,7 @@ pub struct OrtographicData {
 
 impl Default for OrtographicData {
     fn default() -> Self {
-        Self { 
+        Self {
             left: -5.0,
             right: 5.0,
             top: -5.0,
@@ -117,7 +117,12 @@ pub struct PerspectiveData {
 
 impl Default for PerspectiveData {
     fn default() -> Self {
-        Self { aspect_ratio: None, y_fov: 20.0, z_near: 0.01, z_far: None }
+        Self {
+            aspect_ratio: None,
+            y_fov: 20.0,
+            z_near: 0.01,
+            z_far: None,
+        }
     }
 }
 
@@ -154,7 +159,14 @@ pub enum CameraProjection {
 
 impl CameraProjection {
     pub fn new_orthographic(data: &OrtographicData) -> Self {
-        Self::Orthographic(glam::Mat4::orthographic_rh(data.left, data.right, data.bottom, data.top, data.near, data.far))
+        Self::Orthographic(glam::Mat4::orthographic_rh(
+            data.left,
+            data.right,
+            data.bottom,
+            data.top,
+            data.near,
+            data.far,
+        ))
     }
 
     pub fn new_perspective(data: &PerspectiveData, window_width: f32, window_height: f32) -> Self {
@@ -181,6 +193,7 @@ pub struct CameraMatrices {
 #[derive(Debug)]
 pub struct Camera {
     pos: Vec3,
+    front: Vec3,
     ty: CameraType,
 }
 
@@ -188,6 +201,7 @@ impl Camera {
     pub fn from_type(ty: CameraType) -> Self {
         Self {
             pos: Default::default(),
+            front: Vec3::new(1.0, 0.0, 0.0),
             ty,
         }
     }
@@ -202,7 +216,13 @@ impl Camera {
 
     pub fn get_matrices(&self, window_width: f32, window_height: f32) -> CameraMatrices {
         // TODO: This can be better later, have a from vector instead of looking at 0,0,0
-        let view = glam::Mat4::look_at_rh(glam::Vec3::new(self.pos.x(), self.pos.y(), self.pos.z()), glam::Vec3::new(0.0, 0.0, 0.0), glam::Vec3::new(0.0, 1.0, 0.0));
+        let eye = glam::Vec3::new(self.pos.x(), self.pos.y(), self.pos.z());
+        let front = glam::Vec3::new(self.front.x(), self.front.y(), self.front.z());
+        let view = glam::Mat4::look_at_rh(
+            eye,
+            eye + front,
+            glam::Vec3::new(0.0, 1.0, 0.0),
+        );
         let proj = self
             .ty
             .projection(window_width, window_height)
