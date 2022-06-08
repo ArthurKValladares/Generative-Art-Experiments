@@ -15,7 +15,7 @@ fn new_orthographic_proj(
         2.0 * w_inv,
         0.0,
         0.0,
-        -(right + left) * w_inv,
+        0.0,
         //
         0.0,
         2.0 * h_inv,
@@ -25,12 +25,12 @@ fn new_orthographic_proj(
         0.0,
         0.0,
         d_inv,
-        -near * d_inv,
+        0.0,
         //
-        0.0,
-        0.0,
+        -(left + right) * w_inv,
+        -(top + bottom) * h_inv,
+        d_inv * near,
         1.0,
-        0.0,
     )
 }
 

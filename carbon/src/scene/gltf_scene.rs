@@ -169,7 +169,7 @@ impl GltfScene {
             if compiled_scene.cameras.is_empty() {
                 compiled_scene
                     .cameras
-                    .push(Camera::from_type(CameraType::perspective(
+                    .push(Camera::from_type(CameraType::ortographic(
                         Default::default(),
                     )));
             }
