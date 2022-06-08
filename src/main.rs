@@ -361,7 +361,7 @@ fn main() {
             camera.update_position(Vec3::new(1.0, 0.0, 0.0) * camera_speed);
             updated_camera = true;
         }
-        if keyboard_state.is_down(VirtualKeyCode::W) {
+        if keyboard_state.is_down(VirtualKeyCode::S) {
             camera.update_position(Vec3::new(-1.0, 0.0, 0.0) * camera_speed);
             updated_camera = true;
         }

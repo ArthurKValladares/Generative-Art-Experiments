@@ -95,12 +95,30 @@ pub struct OrtographicData {
     pub far: f32,
 }
 
+impl Default for OrtographicData {
+    fn default() -> Self {
+        Self { 
+            left: -5.0,
+            right: 5.0,
+            top: -5.0,
+            bottom: 5.0,
+            near: 0.0,
+            far: 100.0,
+        }
+    }
+}
 #[derive(Debug)]
 pub struct PerspectiveData {
     pub aspect_ratio: Option<f32>,
     pub y_fov: f32,
     pub z_near: f32,
     pub z_far: Option<f32>,
+}
+
+impl Default for PerspectiveData {
+    fn default() -> Self {
+        Self { aspect_ratio: None, y_fov: 20.0, z_near: 0.01, z_far: None }
+    }
 }
 
 #[derive(Debug)]
@@ -110,6 +128,14 @@ pub enum CameraType {
 }
 
 impl CameraType {
+    pub fn ortographic(data: OrtographicData) -> Self {
+        Self::Orthographic(data)
+    }
+
+    pub fn perspective(data: PerspectiveData) -> Self {
+        Self::Perspective(data)
+    }
+
     pub fn projection(&self, window_width: f32, window_height: f32) -> CameraProjection {
         match self {
             Self::Orthographic(data) => CameraProjection::new_orthographic(data),
@@ -120,44 +146,24 @@ impl CameraType {
     }
 }
 
-impl Default for CameraType {
-    fn default() -> Self {
-        Self::Orthographic(OrtographicData {
-            left: -5.0,
-            right: 5.0,
-            top: 5.0,
-            bottom: -5.0,
-            near: 0.0,
-            far: 1.0,
-        })
-    }
-}
-
 #[derive(Debug)]
 pub enum CameraProjection {
-    Orthographic(Mat4),
-    Perspective(Mat4),
+    Orthographic(glam::Mat4),
+    Perspective(glam::Mat4),
 }
 
 impl CameraProjection {
     pub fn new_orthographic(data: &OrtographicData) -> Self {
-        Self::Orthographic(new_orthographic_proj(
-            data.left,
-            data.right,
-            data.top,
-            data.bottom,
-            data.near,
-            data.far,
-        ))
+        Self::Orthographic(glam::Mat4::orthographic_rh(data.left, data.right, data.bottom, data.top, data.near, data.far))
     }
 
     pub fn new_perspective(data: &PerspectiveData, window_width: f32, window_height: f32) -> Self {
         let aspect_ratio = data.aspect_ratio.unwrap_or(window_width / window_height);
-        let mat = new_infinite_perspective_proj(aspect_ratio, data.y_fov, data.z_near);
+        let mat = glam::Mat4::perspective_infinite_rh(data.y_fov, aspect_ratio, data.z_near);
         Self::Perspective(mat)
     }
 
-    pub fn to_raw_matrix(self) -> Mat4 {
+    pub fn to_raw_matrix(self) -> glam::Mat4 {
         match self {
             CameraProjection::Orthographic(mat) => mat,
             CameraProjection::Perspective(mat) => mat,
@@ -165,32 +171,17 @@ impl CameraProjection {
     }
 }
 
-impl Default for CameraProjection {
-    fn default() -> Self {
-        CameraType::default().projection(1000.0, 1000.0)
-    }
-}
-
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct CameraMatrices {
-    view: Mat4,
-    proj: Mat4,
+    view: glam::Mat4,
+    proj: glam::Mat4,
 }
 
 #[derive(Debug)]
 pub struct Camera {
     pos: Vec3,
     ty: CameraType,
-}
-
-impl Default for Camera {
-    fn default() -> Self {
-        Self {
-            pos: Default::default(),
-            ty: Default::default(),
-        }
-    }
 }
 
 impl Camera {
@@ -211,7 +202,7 @@ impl Camera {
 
     pub fn get_matrices(&self, window_width: f32, window_height: f32) -> CameraMatrices {
         // TODO: This can be better later, have a from vector instead of looking at 0,0,0
-        let view = look_at(self.pos, Vec3::zero(), Vec3::new(0.0, 1.0, 0.0));
+        let view = glam::Mat4::look_at_rh(glam::Vec3::new(self.pos.x(), self.pos.y(), self.pos.z()), glam::Vec3::new(0.0, 0.0, 0.0), glam::Vec3::new(0.0, 1.0, 0.0));
         let proj = self
             .ty
             .projection(window_width, window_height)
