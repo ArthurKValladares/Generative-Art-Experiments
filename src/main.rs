@@ -290,6 +290,9 @@ fn main() {
                         .resize(&device, &swapchain)
                         .expect("Could not resize RenderPass");
                 }
+                winit::event::WindowEvent::CursorMoved {  position, .. } => {
+                    frame_context.cursor_moved_position = Some(position);
+                }
                 winit::event::WindowEvent::KeyboardInput { input, .. } => {
                     frame_context.keyboard_input = Some(input);
                 }
