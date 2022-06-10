@@ -1,2 +1,4 @@
-pub mod keyboard;
-pub mod mouse;
+mod keyboard;
+mod mouse;
+
+pub use self::{keyboard::KeyboardState, mouse::MouseState};

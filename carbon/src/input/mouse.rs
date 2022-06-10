@@ -1,4 +1,3 @@
-
 use crate::context::FrameContext;
 use math::vec::Vec2;
 use winit::dpi::PhysicalPosition;
@@ -19,7 +18,7 @@ impl Default for MouseState {
 }
 
 impl MouseState {
-    pub fn update(&mut self, context: &mut FrameContext) {
+    pub fn update(&mut self, context: &FrameContext) {
         let prev_physical_position = self.physical_position;
 
         if let Some(position) = context.cursor_moved_position {

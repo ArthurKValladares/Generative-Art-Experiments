@@ -1,5 +1,7 @@
 use carbon::{
-    camera::Camera, context::FrameContext, input::keyboard::KeyboardState, scene::GltfScene,
+    context::FrameContext,
+    input::{KeyboardState, MouseState},
+    scene::GltfScene,
 };
 use easy_ash::{
     math::{
@@ -236,10 +238,12 @@ fn main() {
 
     // TODO: Cleanup a bunch of this stuff
     let mut keyboard_state = KeyboardState::default();
+    let mut mouse_state = MouseState::default();
     let mut rotate_idx: u64 = 0;
     let mut camera_speed: f32 = 0.01;
     event_loop.run(move |event, _, control_flow| {
-        let mut frame_context = FrameContext::default();
+        let mut frame_context =
+            FrameContext::with_window_size(window_size.width, window_size.height);
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
             Event::WindowEvent {
@@ -290,7 +294,7 @@ fn main() {
                         .resize(&device, &swapchain)
                         .expect("Could not resize RenderPass");
                 }
-                winit::event::WindowEvent::CursorMoved {  position, .. } => {
+                winit::event::WindowEvent::CursorMoved { position, .. } => {
                     frame_context.cursor_moved_position = Some(position);
                 }
                 winit::event::WindowEvent::KeyboardInput { input, .. } => {
@@ -344,6 +348,7 @@ fn main() {
         // TODO: Don't do this unconditionally?
         window.request_redraw();
         keyboard_state.update(&frame_context);
+        mouse_state.update(&frame_context);
         if keyboard_state.is_down(VirtualKeyCode::R) {
             rotate_idx += 1;
         }
@@ -387,8 +392,6 @@ fn main() {
             updated_camera = true;
         }
         if updated_camera {
-            println!("Speed: {} Pos: {:?}", camera_speed, camera.pos());
-
             let camera_matrices =
                 camera.get_matrices(window_size.width as f32, window_size.height as f32);
 

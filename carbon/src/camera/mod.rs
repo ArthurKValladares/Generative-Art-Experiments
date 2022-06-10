@@ -63,7 +63,7 @@ fn look_to(eye: Vec3, dir: Vec3, world_up: Vec3) -> Mat4 {
     let f = dir.normalized();
     let s = world_up.cross(&f).normalized();
     let u = f.cross(&s);
-    
+
     Mat4::from_data(
         s.x(),
         u.x(),
@@ -221,11 +221,7 @@ impl Camera {
         // TODO: This can be better later, have a from vector instead of looking at 0,0,0
         let eye = self.pos;
         let front = self.front;
-        let view = look_at(
-            eye,
-            eye + front,
-            Vec3::new(0.0, 1.0, 0.0),
-        );
+        let view = look_at(eye, eye + front, Vec3::new(0.0, 1.0, 0.0));
         let proj = self
             .ty
             .projection(window_width, window_height)
