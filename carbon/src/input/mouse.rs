@@ -25,9 +25,15 @@ impl MouseState {
             self.physical_position = position;
         }
 
+        let checked_div = |numerator, denominator| if denominator == 0 {
+            0.0 as f32
+        } else {
+            numerator as f32 / denominator as f32
+        };
+
         self.delta = Vec2::new(
-            (self.physical_position.x - prev_physical_position.x) as f32,
-            (self.physical_position.y - prev_physical_position.y) as f32,
+            checked_div(self.physical_position.x - prev_physical_position.x, context.window_size.width),
+            checked_div(self.physical_position.y - prev_physical_position.y, context.window_size.height),
         );
     }
 }
