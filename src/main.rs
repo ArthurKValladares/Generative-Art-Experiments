@@ -1,4 +1,5 @@
 use carbon::{
+    camera::Direction,
     context::FrameContext,
     input::{KeyboardState, MouseState},
     scene::GltfScene,
@@ -241,7 +242,6 @@ fn main() {
     let mut keyboard_state = KeyboardState::default();
     let mut mouse_state = MouseState::default();
     let mut rotate_idx: u64 = 0;
-    let mut camera_speed: f32 = 0.01;
     event_loop.run(move |event, _, control_flow| {
         let mut frame_context =
             FrameContext::with_window_size(window_size.width, window_size.height);
@@ -300,14 +300,12 @@ fn main() {
                 }
                 _ => {}
             },
-            Event::DeviceEvent { event, .. } => {
-                match event {
-                    winit::event::DeviceEvent::MouseMotion { delta } => {
-                        frame_context.cursor_delta = Some(delta);
-                    },
-                    _ => {}
+            Event::DeviceEvent { event, .. } => match event {
+                winit::event::DeviceEvent::MouseMotion { delta } => {
+                    frame_context.cursor_delta = Some(delta);
                 }
-            }
+                _ => {}
+            },
             Event::RedrawRequested(_window_id) => {
                 let present_index = swapchain
                     .acquire_next_image_index(&present_complete_semaphore)
@@ -364,39 +362,34 @@ fn main() {
             *control_flow = winit::event_loop::ControlFlow::Exit;
         }
 
-        if keyboard_state.is_down(VirtualKeyCode::P) {
-            camera_speed += 0.01;
-        }
-        if keyboard_state.is_down(VirtualKeyCode::M) {
-            camera_speed -= 0.01;
-            camera_speed = camera_speed.max(0.0);
-        }
+        if keyboard_state.is_down(VirtualKeyCode::P) {}
+        if keyboard_state.is_down(VirtualKeyCode::M) {}
 
         let mut updated_camera = true;
         if keyboard_state.is_down(VirtualKeyCode::W) {
-            camera.update_position(Vec3::new(1.0, 0.0, 0.0) * camera_speed);
+            camera.update_position(Direction::Front);
             updated_camera = true;
         }
         if keyboard_state.is_down(VirtualKeyCode::S) {
-            camera.update_position(Vec3::new(-1.0, 0.0, 0.0) * camera_speed);
+            camera.update_position(Direction::Back);
             updated_camera = true;
         }
 
         if keyboard_state.is_down(VirtualKeyCode::A) {
-            camera.update_position(Vec3::new(0.00, 0.0, -1.0) * camera_speed);
+            camera.update_position(Direction::Left);
             updated_camera = true;
         }
         if keyboard_state.is_down(VirtualKeyCode::D) {
-            camera.update_position(Vec3::new(0.00, 0.0, 1.0) * camera_speed);
+            camera.update_position(Direction::Right);
             updated_camera = true;
         }
 
         if keyboard_state.is_down(VirtualKeyCode::Space) {
-            camera.update_position(Vec3::new(0.00, 1.0, 0.0) * camera_speed);
+            camera.update_position(Direction::Up);
             updated_camera = true;
         }
         if keyboard_state.is_down(VirtualKeyCode::LShift) {
-            camera.update_position(Vec3::new(0.00, -1.0, 0.0) * camera_speed);
+            camera.update_position(Direction::Down);
             updated_camera = true;
         }
         if updated_camera {

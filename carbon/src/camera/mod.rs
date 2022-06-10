@@ -1,5 +1,5 @@
-use math::{mat::Mat4, vec::Vec3, quat::Quat};
 use crate::input::MouseState;
+use math::{mat::Mat4, quat::Quat, vec::Vec3};
 
 fn new_orthographic_proj(
     left: f32,
@@ -194,12 +194,23 @@ pub struct CameraMatrices {
     proj: Mat4,
 }
 
+#[derive(Debug, Copy, Clone)]
+pub enum Direction {
+    Front,
+    Back,
+    Left,
+    Right,
+    Up,
+    Down,
+}
+
 #[derive(Debug)]
 pub struct Camera {
     pos: Vec3,
     front: Vec3,
     ty: CameraType,
     rotation_speed: f32,
+    movement_speed: f32,
     // TODO: Stop using yaw and pitch later
     yaw: f32,
     pitch: f32,
@@ -212,6 +223,7 @@ impl Camera {
             front: Vec3::new(1.0, 0.0, 0.0),
             ty,
             rotation_speed: 20.0,
+            movement_speed: 0.01,
             yaw: 0.0,
             pitch: 0.0,
         }
@@ -225,8 +237,18 @@ impl Camera {
         &self.front
     }
 
-    pub fn update_position(&mut self, translation: Vec3) {
-        self.pos += translation;
+    pub fn update_position(&mut self, direction: Direction) {
+        let world_up = Vec3::new(0.0, 1.0, 0.0);
+        let flat_front = Vec3::new(self.front.x(), 0.0, self.front.z());
+        let left = world_up.cross(&flat_front).normalized();
+        match direction {
+            Direction::Front => self.pos += flat_front * self.movement_speed,
+            Direction::Back => self.pos -= flat_front * self.movement_speed,
+            Direction::Left => self.pos += left * self.movement_speed,
+            Direction::Right => self.pos -= left * self.movement_speed,
+            Direction::Up => self.pos += world_up * self.movement_speed,
+            Direction::Down => self.pos -= world_up * self.movement_speed,
+        }
     }
 
     pub fn rotate(&mut self, mouse_state: &MouseState) {
@@ -234,13 +256,17 @@ impl Camera {
             self.yaw += delta.x() * self.rotation_speed;
             self.pitch -= delta.y() * self.rotation_speed;
             self.pitch = self.pitch.clamp(-89.0, 89.0);
-    
-            let  yaw_r = self.yaw.to_radians();
+
+            let yaw_r = self.yaw.to_radians();
             let pitch_r = self.pitch.to_radians();
-            self.front = Vec3::new(yaw_r.cos() * pitch_r.cos(), pitch_r.sin(), yaw_r.sin() * pitch_r.cos());
+            self.front = Vec3::new(
+                yaw_r.cos() * pitch_r.cos(),
+                pitch_r.sin(),
+                yaw_r.sin() * pitch_r.cos(),
+            );
         }
     }
-    
+
     pub fn get_matrices(&self, window_width: f32, window_height: f32) -> CameraMatrices {
         // TODO: This can be better later, have a from vector instead of looking at 0,0,0
         let eye = self.pos;

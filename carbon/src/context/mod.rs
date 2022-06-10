@@ -1,7 +1,4 @@
-use winit::{
-    dpi::PhysicalSize,
-    event::KeyboardInput,
-};
+use winit::{dpi::PhysicalSize, event::KeyboardInput};
 
 #[derive(Debug)]
 pub struct FrameContext {
