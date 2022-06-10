@@ -1,5 +1,5 @@
 use winit::{
-    dpi::{PhysicalPosition, PhysicalSize},
+    dpi::PhysicalSize,
     event::KeyboardInput,
 };
 
@@ -7,7 +7,7 @@ use winit::{
 pub struct FrameContext {
     pub window_size: PhysicalSize<u32>,
     pub keyboard_input: Option<KeyboardInput>,
-    pub cursor_moved_position: Option<PhysicalPosition<f64>>,
+    pub cursor_delta: Option<(f64, f64)>,
 }
 
 impl FrameContext {
@@ -15,7 +15,7 @@ impl FrameContext {
         Self {
             window_size: PhysicalSize::new(window_width, window_height),
             keyboard_input: Default::default(),
-            cursor_moved_position: Default::default(),
+            cursor_delta: Default::default(),
         }
     }
 }

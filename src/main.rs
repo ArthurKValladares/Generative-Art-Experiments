@@ -51,6 +51,7 @@ fn main() {
         ))
         .build(&event_loop)
         .unwrap();
+    window.set_cursor_grab(true).ok();
     let window_size = window.inner_size();
 
     let entry = Entry::new(
@@ -294,14 +295,19 @@ fn main() {
                         .resize(&device, &swapchain)
                         .expect("Could not resize RenderPass");
                 }
-                winit::event::WindowEvent::CursorMoved { position, .. } => {
-                    frame_context.cursor_moved_position = Some(position);
-                }
                 winit::event::WindowEvent::KeyboardInput { input, .. } => {
                     frame_context.keyboard_input = Some(input);
                 }
                 _ => {}
             },
+            Event::DeviceEvent { event, .. } => {
+                match event {
+                    winit::event::DeviceEvent::MouseMotion { delta } => {
+                        frame_context.cursor_delta = Some(delta);
+                    },
+                    _ => {}
+                }
+            }
             Event::RedrawRequested(_window_id) => {
                 let present_index = swapchain
                     .acquire_next_image_index(&present_complete_semaphore)
@@ -349,6 +355,8 @@ fn main() {
         window.request_redraw();
         keyboard_state.update(&frame_context);
         mouse_state.update(&frame_context);
+        camera.rotate(&mouse_state);
+
         if keyboard_state.is_down(VirtualKeyCode::R) {
             rotate_idx += 1;
         }
@@ -364,7 +372,7 @@ fn main() {
             camera_speed = camera_speed.max(0.0);
         }
 
-        let mut updated_camera = false;
+        let mut updated_camera = true;
         if keyboard_state.is_down(VirtualKeyCode::W) {
             camera.update_position(Vec3::new(1.0, 0.0, 0.0) * camera_speed);
             updated_camera = true;
