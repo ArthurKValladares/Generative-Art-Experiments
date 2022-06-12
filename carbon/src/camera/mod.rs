@@ -1,5 +1,8 @@
 use crate::input::MouseState;
-use math::{mat::Mat4, quat::Quat, vec::Vec3};
+use math::{mat::Mat4, vec::Vec3};
+
+static ROTATION_DELTA: f32 = 10.0;
+static MOVEMENT_DELTA: f32 = 0.005;
 
 fn new_orthographic_proj(
     left: f32,
@@ -204,6 +207,12 @@ pub enum Direction {
     Down,
 }
 
+#[derive(Debug, Copy, Clone)]
+pub enum UpdateSpeed {
+    Decrease,
+    Increase,
+}
+
 #[derive(Debug)]
 pub struct Camera {
     pos: Vec3,
@@ -222,7 +231,7 @@ impl Camera {
             pos: Default::default(),
             front: Vec3::new(1.0, 0.0, 0.0),
             ty,
-            rotation_speed: 20.0,
+            rotation_speed: 100.0,
             movement_speed: 0.01,
             yaw: 0.0,
             pitch: 0.0,
@@ -235,6 +244,21 @@ impl Camera {
 
     pub fn front(&self) -> &Vec3 {
         &self.front
+    }
+
+    pub fn update_rotation_speed(&mut self, update: UpdateSpeed) {
+        match update {
+            UpdateSpeed::Decrease => self.rotation_speed -= ROTATION_DELTA,
+            UpdateSpeed::Increase => self.rotation_speed += ROTATION_DELTA,
+        }
+    }
+
+    pub fn update_movement_speed(&mut self, update: UpdateSpeed) {
+        match update {
+            UpdateSpeed::Decrease => self.movement_speed -= MOVEMENT_DELTA,
+            UpdateSpeed::Increase => self.movement_speed += MOVEMENT_DELTA,
+        }
+        self.movement_speed = self.movement_speed.max(MOVEMENT_DELTA);
     }
 
     pub fn update_position(&mut self, direction: Direction) {

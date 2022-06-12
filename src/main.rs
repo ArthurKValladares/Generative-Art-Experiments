@@ -1,5 +1,5 @@
 use carbon::{
-    camera::Direction,
+    camera::{Direction, UpdateSpeed},
     context::FrameContext,
     input::{KeyboardState, MouseState},
     scene::GltfScene,
@@ -355,50 +355,53 @@ fn main() {
         mouse_state.update(&frame_context);
         camera.rotate(&mouse_state);
 
-        if keyboard_state.is_down(VirtualKeyCode::R) {
-            rotate_idx += 1;
-        }
         if keyboard_state.is_down(VirtualKeyCode::Escape) {
             *control_flow = winit::event_loop::ControlFlow::Exit;
         }
 
-        if keyboard_state.is_down(VirtualKeyCode::P) {}
-        if keyboard_state.is_down(VirtualKeyCode::M) {}
+        if keyboard_state.is_down(VirtualKeyCode::R) {
+            rotate_idx += 1;
+        }
 
-        let mut updated_camera = true;
+        if keyboard_state.is_down(VirtualKeyCode::P) {
+            camera.update_rotation_speed(UpdateSpeed::Increase);
+        }
+        if keyboard_state.is_down(VirtualKeyCode::O) {
+            camera.update_rotation_speed(UpdateSpeed::Decrease);
+        }
+
+        if keyboard_state.is_down(VirtualKeyCode::L) {
+            camera.update_movement_speed(UpdateSpeed::Increase);
+        }
+        if keyboard_state.is_down(VirtualKeyCode::K) {
+            camera.update_movement_speed(UpdateSpeed::Decrease);
+        }
+
         if keyboard_state.is_down(VirtualKeyCode::W) {
             camera.update_position(Direction::Front);
-            updated_camera = true;
         }
         if keyboard_state.is_down(VirtualKeyCode::S) {
             camera.update_position(Direction::Back);
-            updated_camera = true;
         }
-
         if keyboard_state.is_down(VirtualKeyCode::A) {
             camera.update_position(Direction::Left);
-            updated_camera = true;
         }
         if keyboard_state.is_down(VirtualKeyCode::D) {
             camera.update_position(Direction::Right);
-            updated_camera = true;
         }
-
         if keyboard_state.is_down(VirtualKeyCode::Space) {
             camera.update_position(Direction::Up);
-            updated_camera = true;
         }
         if keyboard_state.is_down(VirtualKeyCode::LShift) {
             camera.update_position(Direction::Down);
-            updated_camera = true;
         }
-        if updated_camera {
-            let camera_matrices =
-                camera.get_matrices(window_size.width as f32, window_size.height as f32);
 
-            camera_buffer
-                .copy_data(std::slice::from_ref(&camera_matrices))
-                .expect("Could not create vertex buffer");
-        }
+        let camera_matrices =
+            camera.get_matrices(window_size.width as f32, window_size.height as f32);
+
+        camera_buffer
+            .copy_data(std::slice::from_ref(&camera_matrices))
+            .expect("Could not create vertex buffer");
+        
     });
 }
