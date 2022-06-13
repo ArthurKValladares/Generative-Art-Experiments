@@ -455,9 +455,9 @@ dependencies = [
 
 [[package]]
 name = "flume"
-version = "0.10.12"
+version = "0.10.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "843c03199d0c0ca54bc1ea90ac0d507274c28abcc4f691ae8b4eaa375087c76a"
+checksum = "1ceeb589a3157cac0ab8cc585feb749bd2cea5cb55a6ee802ad72d9fd38303da"
 dependencies = [
  "futures-core",
  "futures-sink",
@@ -748,7 +748,7 @@ dependencies = [
 [[package]]
 name = "math"
 version = "0.1.0"
-source = "git+https://github.com/ArthurKValladares/Yet-Another-Math-Lib#3bc58263a0a462994ec730a3a05a14724a4bb3dc"
+source = "git+https://github.com/ArthurKValladares/Yet-Another-Math-Lib#93ae45bb0f72c706cbacacae06b7129b3faa2701"
 
 [[package]]
 name = "memchr"

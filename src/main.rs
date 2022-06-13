@@ -241,7 +241,11 @@ fn main() {
     // TODO: Cleanup a bunch of this stuff
     let mut keyboard_state = KeyboardState::default();
     let mut mouse_state = MouseState::default();
-    let mut rotate_idx: u64 = 0;
+
+    let mut rotate_idx_x: u64 = 0;
+    let mut rotate_idx_y: u64 = 0;
+    let mut rotate_idx_z: u64 = 0;
+
     event_loop.run(move |event, _, control_flow| {
         let mut frame_context =
             FrameContext::with_window_size(window_size.width, window_size.height);
@@ -328,15 +332,19 @@ fn main() {
                                 context,
                                 &global_descriptor_set,
                             );
-                            device.push_constant(
-                                context,
-                                &graphics_pipeline,
-                                &camera_push_constant,
-                                easy_ash::as_u8_slice(&Mat4::rotate(
-                                    rotate_idx as f32 * 0.004,
-                                    Vec3::new(0.0, 1.0, 0.0),
-                                )),
-                            );
+                            {
+                                let x_rotate = Mat4::rotate_x(rotate_idx_x as f32 * 0.004);
+                                let y_rotate = Mat4::rotate_y(rotate_idx_y as f32 * 0.004);
+                                let z_rotate = Mat4::rotate_z(rotate_idx_z as f32 * 0.004);
+                                let rotation_matrix = x_rotate * y_rotate * z_rotate;
+
+                                device.push_constant(
+                                    context,
+                                    &graphics_pipeline,
+                                    &camera_push_constant,
+                                    easy_ash::as_u8_slice(&rotation_matrix),
+                                );
+                            }
                             device.draw_indexed(context, compiled_scene.indices.len() as u32);
                             render_pass.end(device, context);
                         },
@@ -360,7 +368,13 @@ fn main() {
         }
 
         if keyboard_state.is_down(VirtualKeyCode::R) {
-            rotate_idx += 1;
+            rotate_idx_x += 1;
+        }
+        if keyboard_state.is_down(VirtualKeyCode::T) {
+            rotate_idx_y += 1;
+        }
+        if keyboard_state.is_down(VirtualKeyCode::Y) {
+            rotate_idx_z += 1;
         }
 
         if keyboard_state.is_down(VirtualKeyCode::P) {
@@ -402,6 +416,5 @@ fn main() {
         camera_buffer
             .copy_data(std::slice::from_ref(&camera_matrices))
             .expect("Could not create vertex buffer");
-        
     });
 }
