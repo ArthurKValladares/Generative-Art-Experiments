@@ -79,12 +79,17 @@ impl GltfScene {
                     for prim in mesh.primitives() {
                         let reader = prim.reader(|buffer| Some(&buffers[buffer.index()]));
 
+                        let material_index = compiled_scene.material_indices.len() as u32;
+
                         // Process vertex positions
                         let mut positions = if let Some(iter) = reader.read_positions() {
                             iter.map(|data| data.into()).collect::<Vec<Vec4>>()
                         } else {
                             return;
                         };
+
+                        // Collect material ids
+                        let mut material_indices = vec![material_index; positions.len()];
 
                         // Process Normals
                         let mut normals = if let Some(iter) = reader.read_normals() {
@@ -135,6 +140,7 @@ impl GltfScene {
                         compiled_scene.normals.append(&mut normals);
                         compiled_scene.uvs.append(&mut uvs);
                         compiled_scene.indices.append(&mut indices);
+                        compiled_scene.material_indices.append(&mut material_indices);
                     }
                 }
             };

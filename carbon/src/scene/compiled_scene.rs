@@ -8,5 +8,6 @@ pub struct CompiledScene {
     pub uvs: Vec<Vec2>,
     pub normals: Vec<Vec3>,
     pub indices: Vec<u32>,
+    pub material_indices: Vec<u32>,
     pub cameras: Vec<Camera>,
 }
