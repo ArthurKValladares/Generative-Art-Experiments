@@ -1,6 +1,6 @@
 use crate::camera::{Camera, CameraType, OrtographicData, PerspectiveData};
 
-use super::compiled_scene::CompiledScene;
+use super::compiled_scene::{CompiledScene, Material};
 use anyhow::Result;
 use bytes::Bytes;
 use math::vec::{Vec2, Vec3, Vec4};
@@ -81,6 +81,9 @@ impl GltfScene {
 
                         let material_index = compiled_scene.material_indices.len() as u32;
 
+                        let material = Material::new(&prim.material());
+                        compiled_scene.materials.push(material);
+
                         // Process vertex positions
                         let mut positions = if let Some(iter) = reader.read_positions() {
                             iter.map(|data| data.into()).collect::<Vec<Vec4>>()
@@ -140,7 +143,9 @@ impl GltfScene {
                         compiled_scene.normals.append(&mut normals);
                         compiled_scene.uvs.append(&mut uvs);
                         compiled_scene.indices.append(&mut indices);
-                        compiled_scene.material_indices.append(&mut material_indices);
+                        compiled_scene
+                            .material_indices
+                            .append(&mut material_indices);
                     }
                 }
             };
