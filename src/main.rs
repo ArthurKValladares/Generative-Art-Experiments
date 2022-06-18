@@ -7,11 +7,11 @@ use carbon::{
 use easy_ash::{
     math::{
         mat::Mat4,
-        vec::{Vec2, Vec3, Vec4},
+        vec::{Vec2, Vec4},
     },
-    AccessMask, ApiVersion, ApplicationInfo, BindingDesc, Buffer, BufferType, ClearValue, Context,
-    DescriptorBufferInfo, DescriptorImageInfo, DescriptorPool, DescriptorSet, DescriptorType,
-    Device, Entry, Fence, GraphicsPipeline, GraphicsProgram, Image, ImageLayout,
+    new_descriptor_image_info, AccessMask, ApiVersion, ApplicationInfo, BindingDesc, Buffer,
+    BufferType, ClearValue, Context, DescriptorBufferInfo, DescriptorPool, DescriptorSet,
+    DescriptorType, Device, Entry, Fence, GraphicsPipeline, GraphicsProgram, Image, ImageLayout,
     ImageMemoryBarrier, InstanceInfo, PipelineStages, PushConstant, RenderPass, Sampler,
     SamplerFilter, SamplerWrapMode, Semaphore, Shader, ShaderStage, Surface, Swapchain,
 };
@@ -204,12 +204,17 @@ fn main() {
             ),
         ];
         if !images_data.is_empty() {
+            let count = 10;
+            let mut infos = images_data
+                .iter()
+                .map(|data| new_descriptor_image_info(&data.0, &sampler))
+                .collect::<Vec<_>>();
+            infos.resize_with(count as usize, || {
+                new_descriptor_image_info(&images_data[0].0, &sampler)
+            });
             binding_desc.push(BindingDesc::new(
-                DescriptorType::CombinedImageSampler(DescriptorImageInfo::new(
-                    &images_data[0].0, // TODO: actually handle this correctly later
-                    &sampler,
-                )),
-                1,
+                DescriptorType::CombinedImageSampler(infos),
+                count,
                 ShaderStage::Fragment,
             ));
         }
