@@ -46,7 +46,7 @@ impl GltfScene {
     pub fn new(path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
         let (document, buffers, images) = gltf::import(path)?;
-        let images = images
+        let mut images = images
             .into_iter()
             .map(|image_data| ImageData {
                 width: image_data.width,
@@ -54,6 +54,17 @@ impl GltfScene {
                 bytes: Bytes::from(build_rgba_buffer(image_data)),
             })
             .collect::<Vec<_>>();
+        // Add 1x1 white texture to the back
+        images.push(ImageData {
+            width: 1,
+            height: 1,
+            bytes: Bytes::from(build_rgba_buffer(gltf::image::Data {
+                pixels: vec![255, 255, 255, 255],
+                format: gltf::image::Format::R8G8B8A8,
+                width: 1,
+                height: 1,
+            })),
+        });
         Ok(Self {
             gltf: document,
             buffers,

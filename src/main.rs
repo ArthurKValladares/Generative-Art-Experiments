@@ -138,7 +138,7 @@ fn main() {
 
     let images = gltf_scene.image_data();
     let images_data = images
-        .into_iter()
+        .iter()
         .map(|image_data| {
             Image::from_data_and_dims(
                 &device,
@@ -217,6 +217,7 @@ fn main() {
                 count,
                 ShaderStage::Fragment,
             ));
+            // TODO: Create a 1x1 white texture that all items with no texture will use
         }
         binding_desc
     };
