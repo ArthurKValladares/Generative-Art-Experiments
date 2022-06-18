@@ -182,45 +182,35 @@ fn main() {
     // Scene setup end
 
     let descriptor_pool = DescriptorPool::new(&device).expect("Could not create descriptor pool");
-    let bind_desc = {
-        let mut binding_desc = vec![
-            BindingDesc::new(
-                DescriptorType::StorageBuffer(DescriptorBufferInfo::new(
-                    &vertex_buffer,
-                    None,
-                    None,
-                )),
-                1,
-                ShaderStage::Vertex,
-            ),
-            BindingDesc::new(
-                DescriptorType::UniformBuffer(DescriptorBufferInfo::new(
-                    &camera_buffer,
-                    None,
-                    None,
-                )),
-                1,
-                ShaderStage::Vertex,
-            ),
-        ];
-        if !images_data.is_empty() {
-            let count = 10;
-            let mut infos = images_data
-                .iter()
-                .map(|data| new_descriptor_image_info(&data.0, &sampler))
-                .collect::<Vec<_>>();
-            infos.resize_with(count as usize, || {
-                new_descriptor_image_info(&images_data[0].0, &sampler)
-            });
-            binding_desc.push(BindingDesc::new(
-                DescriptorType::CombinedImageSampler(infos),
-                count,
-                ShaderStage::Fragment,
-            ));
-            // TODO: Create a 1x1 white texture that all items with no texture will use
-        }
-        binding_desc
+    let texture_array_count = 10;
+    let infos = {
+        let mut infos = images_data
+            .iter()
+            .map(|data| new_descriptor_image_info(&data.0, &sampler))
+            .collect::<Vec<_>>();
+        infos.resize_with(texture_array_count as usize, || {
+            new_descriptor_image_info(&images_data.last().unwrap().0, &sampler)
+        });
+        infos
     };
+    let bind_desc = vec![
+        BindingDesc::new(
+            DescriptorType::StorageBuffer(DescriptorBufferInfo::new(&vertex_buffer, None, None)),
+            1,
+            ShaderStage::Vertex,
+        ),
+        BindingDesc::new(
+            DescriptorType::UniformBuffer(DescriptorBufferInfo::new(&camera_buffer, None, None)),
+            1,
+            ShaderStage::Vertex,
+        ),
+        BindingDesc::new(
+            DescriptorType::CombinedImageSampler(infos),
+            texture_array_count,
+            ShaderStage::Fragment,
+        ),
+    ];
+
     let global_descriptor_set = DescriptorSet::new(&device, &descriptor_pool, &bind_desc)
         .expect("Could not create descriptor set");
     global_descriptor_set.update(&device);
