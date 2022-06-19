@@ -31,13 +31,20 @@ impl Material {
 }
 
 #[derive(Debug, Default)]
+pub struct MeshDraw {
+    pub start_idx: u32,
+    pub num_indices: u32,
+    pub material_idx: u32,
+}
+
+#[derive(Debug, Default)]
 pub struct CompiledScene {
     pub positions: Vec<Vec4>,
     pub colors: Vec<Vec4>,
     pub uvs: Vec<Vec2>,
     pub normals: Vec<Vec3>,
     pub indices: Vec<u32>,
-    pub material_indices: Vec<u32>,
     pub materials: Vec<Material>,
+    pub mesh_draws: Vec<MeshDraw>,
     pub cameras: Vec<Camera>,
 }

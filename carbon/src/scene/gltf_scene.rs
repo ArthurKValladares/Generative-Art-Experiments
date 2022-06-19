@@ -1,6 +1,6 @@
 use crate::camera::{Camera, CameraType, OrtographicData, PerspectiveData};
 
-use super::compiled_scene::{CompiledScene, Material};
+use super::compiled_scene::{CompiledScene, Material, MeshDraw};
 use anyhow::Result;
 use bytes::Bytes;
 use math::vec::{Vec2, Vec3, Vec4};
@@ -90,7 +90,7 @@ impl GltfScene {
                     for prim in mesh.primitives() {
                         let reader = prim.reader(|buffer| Some(&buffers[buffer.index()]));
 
-                        let material_index = compiled_scene.material_indices.len() as u32;
+                        let material_idx = compiled_scene.materials.len() as u32;
 
                         let material = Material::new(&prim.material());
                         compiled_scene.materials.push(material);
@@ -101,9 +101,6 @@ impl GltfScene {
                         } else {
                             return;
                         };
-
-                        // Collect material ids
-                        let mut material_indices = vec![material_index; positions.len()];
 
                         // Process Normals
                         let mut normals = if let Some(iter) = reader.read_normals() {
@@ -148,15 +145,19 @@ impl GltfScene {
                             indices
                         };
 
+                        let mesh_draw = MeshDraw {
+                            start_idx: compiled_scene.indices.len() as u32,
+                            num_indices: indices.len() as u32,
+                            material_idx,
+                        };
+
                         // TODO: remove need for mut bindings
                         compiled_scene.positions.append(&mut positions);
                         compiled_scene.colors.append(&mut colors);
                         compiled_scene.normals.append(&mut normals);
                         compiled_scene.uvs.append(&mut uvs);
                         compiled_scene.indices.append(&mut indices);
-                        compiled_scene
-                            .material_indices
-                            .append(&mut material_indices);
+                        compiled_scene.mesh_draws.push(mesh_draw);
                     }
                 }
             };

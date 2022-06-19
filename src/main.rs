@@ -131,9 +131,9 @@ fn main() {
         .expect("Could not create sampler");
 
     // Scene setup start
-    // TODO: GLtf camera stuff
-    let gltf_scene = GltfScene::new("glTF-Sample-Models/2.0/BoxTextured/glTF/BoxTextured.gltf")
-        .expect("Coult not load gltf scene");
+    let gltf_scene =
+        GltfScene::new("glTF-Sample-Models/2.0/CesiumMilkTruck/glTF/CesiumMilkTruck.gltf")
+            .expect("Coult not load gltf scene");
     let mut compiled_scene = gltf_scene.compile().expect("Could not compile Gltf Scene");
 
     let images = gltf_scene.image_data();
@@ -328,20 +328,27 @@ fn main() {
                                 context,
                                 &global_descriptor_set,
                             );
-                            {
-                                let x_rotate = Mat4::rotate_x(rotate_idx_x as f32 * 0.004);
-                                let y_rotate = Mat4::rotate_y(rotate_idx_y as f32 * 0.004);
-                                let z_rotate = Mat4::rotate_z(rotate_idx_z as f32 * 0.004);
-                                let rotation_matrix = x_rotate * y_rotate * z_rotate;
+                            for mesh_draw in &compiled_scene.mesh_draws {
+                                {
+                                    let x_rotate = Mat4::rotate_x(rotate_idx_x as f32 * 0.004);
+                                    let y_rotate = Mat4::rotate_y(rotate_idx_y as f32 * 0.004);
+                                    let z_rotate = Mat4::rotate_z(rotate_idx_z as f32 * 0.004);
+                                    let rotation_matrix = x_rotate * y_rotate * z_rotate;
 
-                                device.push_constant(
+                                    device.push_constant(
+                                        context,
+                                        &graphics_pipeline,
+                                        &camera_push_constant,
+                                        easy_ash::as_u8_slice(&rotation_matrix),
+                                    );
+                                }
+                                device.draw_indexed(
                                     context,
-                                    &graphics_pipeline,
-                                    &camera_push_constant,
-                                    easy_ash::as_u8_slice(&rotation_matrix),
+                                    mesh_draw.start_idx,
+                                    mesh_draw.num_indices,
                                 );
                             }
-                            device.draw_indexed(context, compiled_scene.indices.len() as u32);
+
                             render_pass.end(device, context);
                         },
                     )

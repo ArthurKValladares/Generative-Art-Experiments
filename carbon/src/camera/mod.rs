@@ -105,10 +105,10 @@ pub struct OrtographicData {
 impl Default for OrtographicData {
     fn default() -> Self {
         Self {
-            left: -5.0,
-            right: 5.0,
-            top: -5.0,
-            bottom: 5.0,
+            left: 0.0,
+            right: 1.0,
+            top: 0.0,
+            bottom: 1.0,
             near: 0.0,
             far: 100.0,
         }
