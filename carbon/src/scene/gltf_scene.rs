@@ -3,7 +3,10 @@ use crate::camera::{Camera, CameraType, OrtographicData, PerspectiveData};
 use super::compiled_scene::{CompiledScene, Material, MeshDraw};
 use anyhow::Result;
 use bytes::Bytes;
-use math::vec::{Vec2, Vec3, Vec4};
+use math::{
+    mat::Mat4,
+    vec::{Vec2, Vec3, Vec4},
+};
 use std::path::Path;
 use thiserror::Error;
 
@@ -17,6 +20,22 @@ pub enum GltfSceneError {
     IoError(#[from] std::io::Error),
     #[error("Gltf file contained no default scene")]
     NoDefaultScene,
+}
+
+fn transform_to_matrix(transform: gltf::scene::Transform) -> Mat4 {
+    match transform {
+        gltf::scene::Transform::Matrix { matrix } => matrix.into(),
+        gltf::scene::Transform::Decomposed {
+            translation,
+            rotation,
+            scale,
+        } => {
+            let translate = Mat4::translate(translation.into());
+            let rotate = Mat4::rotation_from_quat(rotation.into());
+            let scale = Mat4::scale(scale.into());
+            translate * rotate * scale
+        }
+    }
 }
 
 fn compile_gltf_node<F>(node: &gltf::scene::Node, f: &mut F)
@@ -84,6 +103,10 @@ impl GltfScene {
             let mut compiled_scene = CompiledScene::default();
 
             let mut process_node = |node: &gltf::scene::Node| {
+                let transform = node.transform();
+                // TODO: The transform need to accumulate for child nodes
+                let transform_matrix = transform_to_matrix(transform);
+
                 // Process Mesh
                 if let Some(mesh) = node.mesh() {
                     // Process Mesh primitives
@@ -149,6 +172,7 @@ impl GltfScene {
                             start_idx: compiled_scene.indices.len() as u32,
                             num_indices: indices.len() as u32,
                             material_idx,
+                            transform_matrix,
                         };
 
                         // TODO: remove need for mut bindings

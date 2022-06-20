@@ -748,7 +748,7 @@ dependencies = [
 [[package]]
 name = "math"
 version = "0.1.0"
-source = "git+https://github.com/ArthurKValladares/Yet-Another-Math-Lib#93ae45bb0f72c706cbacacae06b7129b3faa2701"
+source = "git+https://github.com/ArthurKValladares/Yet-Another-Math-Lib#70f01f5e14d507df44c40ffd9a2125d88256ced1"
 
 [[package]]
 name = "memchr"

@@ -1,5 +1,8 @@
 use crate::camera::Camera;
-use math::vec::{Vec2, Vec3, Vec4};
+use math::{
+    mat::Mat4,
+    vec::{Vec2, Vec3, Vec4},
+};
 
 #[derive(Debug)]
 pub struct PbrMetallicRoughness {
@@ -35,6 +38,8 @@ pub struct MeshDraw {
     pub start_idx: u32,
     pub num_indices: u32,
     pub material_idx: u32,
+    // TODO: This is inneficient here, duplication it too much
+    pub transform_matrix: Mat4,
 }
 
 #[derive(Debug, Default)]
