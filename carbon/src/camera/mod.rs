@@ -4,6 +4,7 @@ use math::{mat::Mat4, vec::Vec3};
 static ROTATION_DELTA: f32 = 10.0;
 static MOVEMENT_DELTA: f32 = 0.005;
 
+#[rustfmt::skip]
 fn new_orthographic_proj(
     left: f32,
     right: f32,
@@ -16,80 +17,36 @@ fn new_orthographic_proj(
     let h_inv = 1.0 / (bottom - top);
     let d_inv = 1.0 / (far - near);
     Mat4::from_data(
-        2.0 * w_inv,
-        0.0,
-        0.0,
-        0.0,
-        //
-        0.0,
-        2.0 * h_inv,
-        0.0,
-        -(bottom + top) * h_inv,
-        //
-        0.0,
-        0.0,
-        d_inv,
-        0.0,
-        //
-        -(left + right) * w_inv,
-        -(top + bottom) * h_inv,
-        d_inv * near,
-        1.0,
+        2.0 * w_inv, 0.0, 0.0, 0.0,
+        0.0, 2.0 * h_inv, 0.0, -(bottom + top) * h_inv,
+        0.0, 0.0, d_inv, 0.0,
+        -(left + right) * w_inv, -(top + bottom) * h_inv, d_inv * near, 1.0,
     )
 }
 
+#[rustfmt::skip]
 fn new_infinite_perspective_proj(aspect_ratio: f32, y_fov: f32, z_near: f32) -> Mat4 {
     let g = 1.0 / (y_fov * 0.5).tan();
     Mat4::from_data(
-        g / aspect_ratio,
-        0.0,
-        0.0,
-        0.0,
-        //
-        0.0,
-        g,
-        0.0,
-        0.0,
-        //
-        0.0,
-        0.0,
-        -1.0,
-        -1.0,
-        //
-        0.0,
-        0.0,
-        -z_near,
-        0.0,
+        g / aspect_ratio, 0.0, 0.0, 0.0,
+        0.0,              g,   0.0, 0.0,
+        0.0,              0.0, 0.0, z_near,
+        0.0,              0.0, 1.0, 0.0,
     )
 }
 
-fn look_to(eye: Vec3, dir: Vec3, world_up: Vec3) -> Mat4 {
-    let f = dir.normalized();
-    let s = world_up.cross(&f).normalized();
-    let u = f.cross(&s);
+#[rustfmt::skip]
+fn look_at(eye: Vec3, at: Vec3, world_up: Vec3) -> Mat4 {
+    let z_axis = (at - eye).normalized();
+    let x_axis = world_up.cross(&z_axis).normalized();
+    let y_axis = z_axis.cross(&x_axis);
 
     Mat4::from_data(
-        s.x(),
-        u.x(),
-        f.x(),
-        0.0,
-        s.y(),
-        u.y(),
-        f.y(),
-        0.0,
-        s.z(),
-        u.z(),
-        f.z(),
-        0.0,
-        -s.dot(&eye),
-        -u.dot(&eye),
-        -f.dot(&eye),
-        1.0,
+        x_axis.x(),        y_axis.x(),        z_axis.x(),        0.0,
+        x_axis.y(),        y_axis.y(),        z_axis.y(),        0.0,
+        x_axis.z(),        y_axis.z(),        z_axis.z(),        0.0,
+        -x_axis.dot(&eye), -y_axis.dot(&eye), -z_axis.dot(&eye), 1.0,
     )
-}
-
-fn look_at(eye: Vec3, at: Vec3, world_up: Vec3) -> Mat4 {
-    look_to(eye, eye - at, world_up)
 }
 
 #[derive(Debug)]

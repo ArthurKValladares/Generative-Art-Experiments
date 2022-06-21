@@ -333,6 +333,7 @@ fn main() {
                                         easy_ash::as_u8_slice(&mesh_draw.transform_matrix),
                                     );
                                 }
+                                println!("{}", mesh_draw.transform_matrix);
                                 device.draw_indexed(
                                     context,
                                     mesh_draw.start_idx,
