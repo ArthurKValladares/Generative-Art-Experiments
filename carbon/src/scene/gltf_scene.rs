@@ -22,30 +22,17 @@ pub enum GltfSceneError {
     NoDefaultScene,
 }
 
-fn transform_to_matrix(transform: gltf::scene::Transform) -> Mat4 {
-    match transform {
-        gltf::scene::Transform::Matrix { matrix } => matrix.into(),
-        gltf::scene::Transform::Decomposed {
-            translation,
-            rotation,
-            scale,
-        } => {
-            let translate = Mat4::translate(translation.into());
-            let rotate = Mat4::rotation_from_quat(rotation.into());
-            let scale = Mat4::scale(scale.into());
-            translate * rotate * scale
-        }
-    }
-}
-
-fn compile_gltf_node<F>(node: &gltf::scene::Node, f: &mut F)
+fn compile_gltf_node<F>(node: &gltf::scene::Node, f: &mut F, transform: Mat4)
 where
-    F: FnMut(&gltf::scene::Node),
+    F: FnMut(&gltf::scene::Node, Mat4),
 {
-    f(&node);
+    let node_transform = node.transform().matrix().into();
+    let transform = transform * node_transform;
+
+    f(&node, transform);
 
     for child in node.children() {
-        compile_gltf_node(&child, f);
+        compile_gltf_node(&child, f, transform);
     }
 }
 
@@ -102,11 +89,7 @@ impl GltfScene {
         {
             let mut compiled_scene = CompiledScene::default();
 
-            let mut process_node = |node: &gltf::scene::Node| {
-                let transform = node.transform();
-                // TODO: The transform need to accumulate for child nodes
-                let transform_matrix = transform_to_matrix(transform);
-
+            let mut process_node = |node: &gltf::scene::Node, transform: Mat4| {
                 // Process Mesh
                 if let Some(mesh) = node.mesh() {
                     // Process Mesh primitives
@@ -172,7 +155,7 @@ impl GltfScene {
                             start_idx: compiled_scene.indices.len() as u32,
                             num_indices: indices.len() as u32,
                             material_idx,
-                            transform_matrix,
+                            transform_matrix: transform,
                         };
 
                         // TODO: remove need for mut bindings
@@ -187,7 +170,7 @@ impl GltfScene {
             };
 
             for node in scene.nodes() {
-                compile_gltf_node(&node, &mut process_node);
+                compile_gltf_node(&node, &mut process_node, Mat4::identity());
             }
 
             for camera in self.gltf.cameras() {
