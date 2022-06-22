@@ -3,6 +3,7 @@ use math::{mat::Mat4, vec::Vec3};
 
 static ROTATION_DELTA: f32 = 10.0;
 static MOVEMENT_DELTA: f32 = 0.005;
+static WORLD_UP: Vec3 = Vec3::new(0.0, 1.0, 0.0);
 
 #[rustfmt::skip]
 fn new_orthographic_proj(
@@ -151,8 +152,7 @@ impl CameraProjection {
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct CameraMatrices {
-    view: Mat4,
-    proj: Mat4,
+    proj_view: glam::Mat4,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -220,16 +220,15 @@ impl Camera {
     }
 
     pub fn update_position(&mut self, direction: Direction) {
-        let world_up = Vec3::new(0.0, 1.0, 0.0);
         let flat_front = Vec3::new(self.front.x(), 0.0, self.front.z());
-        let right = world_up.cross(&flat_front).normalized();
+        let left = WORLD_UP.cross(&flat_front).normalized();
         match direction {
             Direction::Front => self.pos += flat_front * self.movement_speed,
             Direction::Back => self.pos -= flat_front * self.movement_speed,
-            Direction::Left => self.pos -= right * self.movement_speed,
-            Direction::Right => self.pos += right * self.movement_speed,
-            Direction::Up => self.pos += world_up * self.movement_speed,
-            Direction::Down => self.pos -= world_up * self.movement_speed,
+            Direction::Left => self.pos += left * self.movement_speed,
+            Direction::Right => self.pos -= left * self.movement_speed,
+            Direction::Up => self.pos += WORLD_UP * self.movement_speed,
+            Direction::Down => self.pos -= WORLD_UP * self.movement_speed,
         }
     }
 
@@ -253,11 +252,22 @@ impl Camera {
         // TODO: This can be better later, have a from vector instead of looking at 0,0,0
         let eye = self.pos;
         let front = self.front;
+        /*
         let view = look_at(eye, eye + front, Vec3::new(0.0, 1.0, 0.0));
         let proj = self
             .ty
             .projection(window_width, window_height)
             .to_raw_matrix();
-        CameraMatrices { view, proj }
+        */
+        let eye = glam::Vec3::new(eye.x(), eye.y(), eye.z());
+        let front = glam::Vec3::new(front.x(), front.y(), front.z());
+        let center = eye + front;
+        let up = glam::Vec3::new(WORLD_UP.x(), WORLD_UP.y(), WORLD_UP.z());
+
+        let view = glam::Mat4::look_at_rh(eye, center, -up);
+        let proj = glam::Mat4::perspective_infinite_rh(30.0, window_width / window_height, 0.01);
+
+        let proj_view = proj * view;
+        CameraMatrices { proj_view }
     }
 }

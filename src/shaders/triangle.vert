@@ -15,8 +15,7 @@ layout(set = 0, binding = 0) readonly buffer Vertices
 
 layout(set = 0, binding = 1) uniform UniformBufferObject
 {
-    mat4 view;
-	mat4 proj;
+	mat4 proj_view;
 } ubo;
 
 layout (location = 0) out vec2 o_uv;
@@ -33,5 +32,5 @@ void main() {
 
     o_uv = v.uv;
     o_color = v.color;
-    gl_Position = ubo.proj * ubo.view * v.pos;
+    gl_Position = ubo.proj_view * PushConstants.model_matrix * v.pos;
 }

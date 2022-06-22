@@ -110,6 +110,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytes",
+ "glam",
  "gltf",
  "image 0.24.2",
  "math",
@@ -533,6 +534,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "glam"
+version = "0.20.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f43e957e744be03f5801a55472f593d43fabdebf25a4585db250f04d86b1675f"
+
+[[package]]
 name = "gltf"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -748,7 +755,7 @@ dependencies = [
 [[package]]
 name = "math"
 version = "0.1.0"
-source = "git+https://github.com/ArthurKValladares/Yet-Another-Math-Lib#0c997035c6abdf349d18992c2d233c940125c17b"
+source = "git+https://github.com/ArthurKValladares/Yet-Another-Math-Lib#067ed97ac2f199c9025c247c19bf64275ece718b"
 
 [[package]]
 name = "memchr"
