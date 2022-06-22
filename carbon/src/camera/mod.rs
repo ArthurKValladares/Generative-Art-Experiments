@@ -37,15 +37,16 @@ fn new_infinite_perspective_proj(aspect_ratio: f32, y_fov: f32, z_near: f32) -> 
 
 #[rustfmt::skip]
 fn look_at(eye: Vec3, at: Vec3, world_up: Vec3) -> Mat4 {
-    let z_axis = (at - eye).normalized();
-    let x_axis = world_up.cross(&z_axis).normalized();
-    let y_axis = z_axis.cross(&x_axis);
+    let foward = (at - eye).normalized();
+    let right = world_up.cross(&foward).normalized();
+    let up = foward.cross(&right);
+
 
     Mat4::from_data(
-        x_axis.x(),        y_axis.x(),        z_axis.x(),        0.0,
-        x_axis.y(),        y_axis.y(),        z_axis.y(),        0.0,
-        x_axis.z(),        y_axis.z(),        z_axis.z(),        0.0,
-        -x_axis.dot(&eye), -y_axis.dot(&eye), -z_axis.dot(&eye), 1.0,
+        right.x(),  right.y(),  right.z(),  -right.dot(&eye),
+        up.x(),     up.y(),     up.z(),     -up.dot(&eye),
+        foward.x(), foward.y(), foward.z(), -foward.dot(&eye),
+        0.0,    0.0,    0.0,    1.0,
     )
 }
 
@@ -221,12 +222,12 @@ impl Camera {
     pub fn update_position(&mut self, direction: Direction) {
         let world_up = Vec3::new(0.0, 1.0, 0.0);
         let flat_front = Vec3::new(self.front.x(), 0.0, self.front.z());
-        let left = world_up.cross(&flat_front).normalized();
+        let right = world_up.cross(&flat_front).normalized();
         match direction {
             Direction::Front => self.pos += flat_front * self.movement_speed,
             Direction::Back => self.pos -= flat_front * self.movement_speed,
-            Direction::Left => self.pos += left * self.movement_speed,
-            Direction::Right => self.pos -= left * self.movement_speed,
+            Direction::Left => self.pos -= right * self.movement_speed,
+            Direction::Right => self.pos += right * self.movement_speed,
             Direction::Up => self.pos += world_up * self.movement_speed,
             Direction::Down => self.pos -= world_up * self.movement_speed,
         }
@@ -234,7 +235,7 @@ impl Camera {
 
     pub fn rotate(&mut self, mouse_state: &MouseState) {
         if let Some(delta) = mouse_state.delta {
-            self.yaw += delta.x() * self.rotation_speed;
+            self.yaw -= delta.x() * self.rotation_speed;
             self.pitch -= delta.y() * self.rotation_speed;
             self.pitch = self.pitch.clamp(-89.0, 89.0);
 

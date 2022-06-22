@@ -26,8 +26,8 @@ fn compile_gltf_node<F>(node: &gltf::scene::Node, f: &mut F, transform: Mat4)
 where
     F: FnMut(&gltf::scene::Node, Mat4),
 {
-    let node_transform: Mat4 = node.transform().matrix().into();
-    let transform = transform * node_transform;
+    //let node_transform: Mat4 = node.transform().matrix().into();
+    //let transform = transform * node_transform;
 
     f(&node, transform);
 
