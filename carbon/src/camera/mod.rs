@@ -27,27 +27,26 @@ fn new_orthographic_proj(
 
 #[rustfmt::skip]
 fn new_infinite_perspective_proj(aspect_ratio: f32, y_fov: f32, z_near: f32) -> Mat4 {
-    let g = 1.0 / (y_fov * 0.5).tan();
+    let f = 1.0 / (y_fov * 0.5).tan();
     Mat4::from_data(
-        g / aspect_ratio, 0.0, 0.0, 0.0,
-        0.0,              g,   0.0, 0.0,
-        0.0,              0.0, 0.0, z_near,
-        0.0,              0.0, 1.0, 0.0,
+        f / aspect_ratio, 0.0, 0.0,  0.0,
+        0.0,              f,   0.0,  0.0,
+        0.0,              0.0, -1.0, -z_near,
+        0.0,              0.0, -1.0, 0.0,
     )
 }
 
 #[rustfmt::skip]
-fn look_at(eye: Vec3, at: Vec3, world_up: Vec3) -> Mat4 {
-    let foward = (at - eye).normalized();
-    let right = world_up.cross(&foward).normalized();
-    let up = foward.cross(&right);
-
+fn look_to(eye: Vec3, front: Vec3, world_up: Vec3) -> Mat4 {
+    let front = (front * -1.0).normalized();
+    let side = world_up.cross(&front).normalized();
+    let up = front.cross(&side);
 
     Mat4::from_data(
-        right.x(),  right.y(),  right.z(),  -right.dot(&eye),
-        up.x(),     up.y(),     up.z(),     -up.dot(&eye),
-        foward.x(), foward.y(), foward.z(), -foward.dot(&eye),
-        0.0,    0.0,    0.0,    1.0,
+        side.x(),  side.y(),  side.z(),  -side.dot(&eye),
+        up.x(),    up.y(),    up.z(),    -up.dot(&eye),
+        front.x(), front.y(), front.z(), -front.dot(&eye),
+        0.0,       0.0,       0.0,       1.0,
     )
 }
 
@@ -152,7 +151,7 @@ impl CameraProjection {
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct CameraMatrices {
-    proj_view: glam::Mat4,
+    proj_view: Mat4,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -234,7 +233,7 @@ impl Camera {
 
     pub fn rotate(&mut self, mouse_state: &MouseState) {
         if let Some(delta) = mouse_state.delta {
-            self.yaw -= delta.x() * self.rotation_speed;
+            self.yaw += delta.x() * self.rotation_speed;
             self.pitch -= delta.y() * self.rotation_speed;
             self.pitch = self.pitch.clamp(-89.0, 89.0);
 
@@ -252,20 +251,12 @@ impl Camera {
         // TODO: This can be better later, have a from vector instead of looking at 0,0,0
         let eye = self.pos;
         let front = self.front;
-        /*
-        let view = look_at(eye, eye + front, Vec3::new(0.0, 1.0, 0.0));
+
+        let view = look_to(eye, front, WORLD_UP);
         let proj = self
             .ty
             .projection(window_width, window_height)
             .to_raw_matrix();
-        */
-        let eye = glam::Vec3::new(eye.x(), eye.y(), eye.z());
-        let front = glam::Vec3::new(front.x(), front.y(), front.z());
-        let center = eye + front;
-        let up = glam::Vec3::new(WORLD_UP.x(), WORLD_UP.y(), WORLD_UP.z());
-
-        let view = glam::Mat4::look_at_rh(eye, center, -up);
-        let proj = glam::Mat4::perspective_infinite_rh(30.0, window_width / window_height, 0.01);
 
         let proj_view = proj * view;
         CameraMatrices { proj_view }
