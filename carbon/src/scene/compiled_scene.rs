@@ -12,7 +12,7 @@ pub struct PbrMetallicRoughness {
 
 #[derive(Debug)]
 pub struct Material {
-    metallic_roughness: PbrMetallicRoughness,
+    pub metallic_roughness: PbrMetallicRoughness,
 }
 
 impl Material {

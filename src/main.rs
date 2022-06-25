@@ -32,10 +32,19 @@ struct Vertex {
     pad: Vec2,
 }
 
+#[repr(transparent)]
+#[derive(Clone, Debug, Copy)]
+struct CameraPushConstantData {
+    model_matrix: Mat4,
+}
+
 #[repr(C)]
 #[derive(Clone, Debug, Copy)]
-struct PushConstantData {
-    model_matrix: Mat4,
+struct MaterialPushConstantData {
+    texture_index: u32,
+    pad_1: u32,
+    pad_2: u32,
+    pad_3: u32,
 }
 
 fn main() {
@@ -131,9 +140,8 @@ fn main() {
         .expect("Could not create sampler");
 
     // Scene setup start
-    let gltf_scene =
-        GltfScene::new("glTF-Sample-Models/2.0/FlightHelmet/glTF/FlightHelmet.gltf")
-            .expect("Coult not load gltf scene");
+    let gltf_scene = GltfScene::new("glTF-Sample-Models/2.0/FlightHelmet/glTF/FlightHelmet.gltf")
+        .expect("Coult not load gltf scene");
     let mut compiled_scene = gltf_scene.compile().expect("Could not compile Gltf Scene");
 
     let images = gltf_scene.image_data();
@@ -182,7 +190,7 @@ fn main() {
     // Scene setup end
 
     let descriptor_pool = DescriptorPool::new(&device).expect("Could not create descriptor pool");
-    let texture_array_count = 10;
+    let texture_array_count = 50;
     let infos = {
         let mut infos = images_data
             .iter()
@@ -215,10 +223,16 @@ fn main() {
         .expect("Could not create descriptor set");
     global_descriptor_set.update(&device);
 
+    // TODO: handle offset automatically in new abstraction
     let camera_push_constant = PushConstant {
         stage: ShaderStage::Vertex,
         offset: 0,
-        size: std::mem::size_of::<PushConstantData>() as u32,
+        size: std::mem::size_of::<CameraPushConstantData>() as u32,
+    };
+    let material_push_constant = PushConstant {
+        stage: ShaderStage::Fragment,
+        offset: std::mem::size_of::<CameraPushConstantData>() as u32,
+        size: std::mem::size_of::<MaterialPushConstantData>() as u32,
     };
 
     let graphics_pipeline = GraphicsPipeline::new(
@@ -227,7 +241,7 @@ fn main() {
         &render_pass,
         &graphics_program,
         &[&global_descriptor_set],
-        &[&camera_push_constant],
+        &[&camera_push_constant, &material_push_constant],
     )
     .expect("Could not create graphics pipeline");
 
@@ -332,8 +346,29 @@ fn main() {
                                         &camera_push_constant,
                                         easy_ash::as_u8_slice(&mesh_draw.transform_matrix),
                                     );
+
+                                    // todo: Better abstraction for setting material data later
+                                    let material =
+                                        &compiled_scene.materials[mesh_draw.material_idx as usize];
+                                    let texture_index = material
+                                        .metallic_roughness
+                                        .texture_index
+                                        .unwrap_or(images_data.len() - 1)
+                                        as u32;
+                                    let material_data = MaterialPushConstantData {
+                                        texture_index,
+                                        pad_1: 0,
+                                        pad_2: 0,
+                                        pad_3: 0,
+                                    };
+                                    device.push_constant(
+                                        context,
+                                        &graphics_pipeline,
+                                        &material_push_constant,
+                                        easy_ash::as_u8_slice(&material_data),
+                                    );
                                 }
-                                
+
                                 device.draw_indexed(
                                     context,
                                     mesh_draw.start_idx,
