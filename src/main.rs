@@ -132,7 +132,7 @@ fn main() {
 
     // Scene setup start
     let gltf_scene =
-        GltfScene::new("glTF-Sample-Models/2.0/CesiumMilkTruck/glTF/CesiumMilkTruck.gltf")
+        GltfScene::new("glTF-Sample-Models/2.0/FlightHelmet/glTF/FlightHelmet.gltf")
             .expect("Coult not load gltf scene");
     let mut compiled_scene = gltf_scene.compile().expect("Could not compile Gltf Scene");
 
@@ -333,7 +333,7 @@ fn main() {
                                         easy_ash::as_u8_slice(&mesh_draw.transform_matrix),
                                     );
                                 }
-                                println!("{}", mesh_draw.transform_matrix);
+                                
                                 device.draw_indexed(
                                     context,
                                     mesh_draw.start_idx,
