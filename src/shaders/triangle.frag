@@ -12,6 +12,7 @@ layout (location = 0) out vec4 uFragColor;
 //push constants block
 layout( push_constant ) uniform constants
 {
+    layout(offset = 64)
 	uint texture_index;
     uint pad_1;
     uint pad_2;

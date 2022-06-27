@@ -355,6 +355,7 @@ fn main() {
                                         .texture_index
                                         .unwrap_or(images_data.len() - 1)
                                         as u32;
+
                                     let material_data = MaterialPushConstantData {
                                         texture_index,
                                         pad_1: 0,
