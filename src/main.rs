@@ -1,6 +1,7 @@
 use carbon::{
     camera::{Direction, UpdateSpeed},
     context::FrameContext,
+    egui::EguiIntegration,
     input::{KeyboardState, MouseState},
     scene::GltfScene,
 };
@@ -140,7 +141,7 @@ fn main() {
         .expect("Could not create sampler");
 
     // Scene setup start
-    let gltf_scene = GltfScene::new("glTF-Sample-Models/2.0/FlightHelmet/glTF/FlightHelmet.gltf")
+    let gltf_scene = GltfScene::new("glTF-Sample-Models/2.0/BoxTextured/glTF/BoxTextured.gltf")
         .expect("Coult not load gltf scene");
     let mut compiled_scene = gltf_scene.compile().expect("Could not compile Gltf Scene");
 
@@ -247,6 +248,9 @@ fn main() {
 
     let present_complete_semaphore = Semaphore::new(&device).expect("Could not create semaphore");
     let rendering_complete_semaphore = Semaphore::new(&device).expect("Could not create semaphore");
+
+    // Egui
+    let egui = EguiIntegration::new(&window, &device);
 
     // TODO: Cleanup a bunch of this stuff
     let mut keyboard_state = KeyboardState::default();
