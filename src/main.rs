@@ -4,6 +4,7 @@ use carbon::{
     egui::EguiIntegration,
     input::{KeyboardState, MouseState},
     scene::GltfScene,
+    vertex::Vertex,
 };
 use easy_ash::{
     math::{
@@ -22,16 +23,6 @@ use winit::{
     event_loop::EventLoop,
     window::WindowBuilder,
 };
-
-// TODO: This will be defined in the shader later
-#[repr(C)]
-#[derive(Clone, Debug, Copy)]
-struct Vertex {
-    pos: Vec4,
-    color: Vec4,
-    uv: Vec2,
-    pad: Vec2,
-}
 
 #[repr(transparent)]
 #[derive(Clone, Debug, Copy)]

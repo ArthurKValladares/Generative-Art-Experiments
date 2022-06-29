@@ -1,12 +1,15 @@
+use super::Painter;
 use easy_ash::Device;
 use egui::{Context, PlatformOutput, RawInput, TexturesDelta};
 use winit::window::Window;
 
-use super::Painter;
+// NOTE: based heavily on:
+// https://github.com/emilk/egui/tree/master/egui_glium/src
 
 pub struct EguiIntegration {
     context: Context,
     egui_winit: egui_winit::State,
+    painter: Painter,
 }
 
 impl EguiIntegration {
@@ -14,9 +17,11 @@ impl EguiIntegration {
         let max_texture_side = device.properties.limits.max_image_dimension2_d as usize;
         let context = egui::Context::default();
         let egui_winit = egui_winit::State::new(max_texture_side, window);
+        let painter = Painter::new();
         Self {
             context,
             egui_winit,
+            painter,
         }
     }
 
@@ -24,21 +29,27 @@ impl EguiIntegration {
         self.egui_winit.take_egui_input(window)
     }
 
-    fn handle_platform_output(&self, _platform_output: PlatformOutput) {}
+    fn set_textures(&mut self, _textures_delta: &TexturesDelta) {}
 
-    fn set_textures(&self, _textures_delta: &TexturesDelta) {}
+    fn free_textures(&mut self, _textures_delta: TexturesDelta) {}
 
-    fn free_textures(&self, _textures_delta: TexturesDelta) {}
-
-    pub fn run(&mut self, window: &Window, painter: &Painter, f: impl FnOnce(&Context)) {
+    pub fn run(&mut self, window: &Window, f: impl FnOnce(&Context)) {
         let raw_input = self.gather_input(window);
-        let full_output = self.context.run(raw_input, f);
-        let clipped_primitives = self.context.tessellate(full_output.shapes);
+        let egui::FullOutput {
+            platform_output,
+            needs_repaint,
+            textures_delta,
+            shapes,
+        } = self.context.run(raw_input, f);
+        let clipped_primitives = self.context.tessellate(shapes);
 
-        self.handle_platform_output(full_output.platform_output);
+        self.egui_winit
+            .handle_platform_output(window, &self.context, platform_output);
 
-        self.set_textures(&full_output.textures_delta);
-        painter.paint(&clipped_primitives);
-        self.free_textures(full_output.textures_delta);
+        // TODO? Make this a separate step
+        self.set_textures(&textures_delta);
+        self.painter
+            .paint(self.context.pixels_per_point(), &clipped_primitives);
+        self.free_textures(textures_delta);
     }
 }
