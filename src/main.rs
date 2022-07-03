@@ -1,6 +1,7 @@
 use carbon::{
     camera::{Direction, UpdateSpeed},
     context::FrameContext,
+    imgui::Imgui,
     input::{KeyboardState, MouseState},
     scene::GltfScene,
     vertex::Vertex,
@@ -238,6 +239,9 @@ fn main() {
 
     let present_complete_semaphore = Semaphore::new(&device).expect("Could not create semaphore");
     let rendering_complete_semaphore = Semaphore::new(&device).expect("Could not create semaphore");
+
+    // Imgui stuff
+    let imgui = Imgui::new(&window);
 
     // TODO: Cleanup a bunch of this stuff
     let mut keyboard_state = KeyboardState::default();
