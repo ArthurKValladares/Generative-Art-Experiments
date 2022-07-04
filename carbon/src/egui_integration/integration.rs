@@ -33,7 +33,7 @@ impl EguiIntegration {
 
     fn free_textures(&mut self, _textures_delta: TexturesDelta) {}
 
-    pub fn run(&mut self, window: &Window, f: impl FnOnce(&Context)) {
+    pub fn run(&mut self, device: &Device, window: &Window, f: impl FnOnce(&Context)) {
         let raw_input = self.gather_input(window);
         let egui::FullOutput {
             platform_output,
@@ -49,7 +49,7 @@ impl EguiIntegration {
         // TODO? Make this a separate step
         self.set_textures(&textures_delta);
         self.painter
-            .paint(self.context.pixels_per_point(), &clipped_primitives);
+            .paint(device, self.context.pixels_per_point(), &clipped_primitives);
         self.free_textures(textures_delta);
     }
 }
