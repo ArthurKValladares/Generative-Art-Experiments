@@ -1,18 +1,34 @@
 use crate::vertex::Vertex;
-use easy_ash::{Buffer, BufferType, Device};
+use easy_ash::{Buffer, BufferType, ClearValue, Context, Device, RenderPass, Swapchain};
 use egui::{epaint::Primitive, ClippedPrimitive, FullOutput, Mesh, Rect};
 use math::vec::{Vec2, Vec4};
 
-pub struct Painter {}
+pub struct Painter {
+    egui_render_pass: RenderPass,
+}
 
 impl Painter {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(device: &Device, swapchain: &Swapchain) -> Self {
+        let egui_render_pass = RenderPass::new(
+            &device,
+            &swapchain,
+            &[
+                ClearValue::Color(Vec4::new(1.0, 0.0, 1.0, 0.0)),
+                ClearValue::Depth {
+                    depth: 1.0,
+                    stencil: 0,
+                },
+            ],
+        )
+        .expect("Could not create RenderPass");
+        Self { egui_render_pass }
     }
 
     pub fn paint(
         &mut self,
         device: &Device,
+        context: &Context,
+        present_index: u32,
         pixels_per_point: f32,
         clipped_primitives: &[ClippedPrimitive],
     ) {
@@ -23,7 +39,14 @@ impl Painter {
         {
             match primitive {
                 Primitive::Mesh(mesh) => {
-                    self.paint_mesh(device, pixels_per_point, clip_rect, mesh);
+                    self.paint_mesh(
+                        device,
+                        context,
+                        present_index,
+                        pixels_per_point,
+                        clip_rect,
+                        mesh,
+                    );
                 }
                 Primitive::Callback(_) => {
                     todo!("Custom rendering callbacks are not implemented");
@@ -35,6 +58,8 @@ impl Painter {
     fn paint_mesh(
         &mut self,
         device: &Device,
+        context: &Context,
+        present_index: u32,
         pixels_per_point: f32,
         clip_rect: &Rect,
         mesh: &Mesh,
@@ -55,11 +80,27 @@ impl Painter {
                 pad: Vec2::zero(),
             })
             .collect::<Vec<_>>();
+        let indices = &mesh.indices;
+
         let vertex_buffer = Buffer::from_data(&device, BufferType::Storage, &vertices)
             .expect("Could not create vertex buffer");
-
-        let indices = &mesh.indices;
         let index_buffer = Buffer::from_data(&device, BufferType::Index, &indices)
             .expect("Could not create index buffer");
+
+        // Dummy draw logic, no texture (yet)
+        self.egui_render_pass.begin(device, context, present_index);
+        {
+            //egui_pipeline.bind(device, context);
+            //device.bind_index_buffer(context, &index_buffer);
+            //egui_pipeline.bind_descriptor_set(device, context, &egui_descriptor_set);
+            //device.push_constant(
+            //    context,
+            //    &egui_pipeline,
+            //    &material_push_constant,
+            //    easy_ash::as_u8_slice(&material_data),
+            //);
+            //device.draw_indexed(context, mesh_draw.start_idx, mesh_draw.num_indices);
+        }
+        self.egui_render_pass.end(device, context);
     }
 }

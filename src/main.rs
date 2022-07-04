@@ -242,7 +242,7 @@ fn main() {
     let rendering_complete_semaphore = Semaphore::new(&device).expect("Could not create semaphore");
 
     // Egui
-    let mut egui = EguiIntegration::new(&window, &device);
+    let mut egui = EguiIntegration::new(&window, &device, &swapchain);
 
     // TODO: Cleanup a bunch of this stuff
     let mut keyboard_state = KeyboardState::default();
@@ -371,24 +371,18 @@ fn main() {
                                     mesh_draw.start_idx,
                                     mesh_draw.num_indices,
                                 );
-
-                                //
-                                //
-                                // TODO: Re-using same main render pass for now.
-                                // In the future egui stuff will have it's separate ui pass
-                                //
-                                egui.run(&device, &window, |context| {
-                                    egui::SidePanel::left("Test Panel").show(context, |ui| {
-                                        ui.heading("Hello World!");
-                                    });
-                                });
-                                //
-                                //
-                                //
-                                //
-                                //
                             }
                             render_pass.end(device, context);
+
+                            // Egui UI pass
+                            //
+                            egui.run(&device, context, present_index, &window, |context| {
+                                egui::SidePanel::left("Test Panel").show(context, |ui| {
+                                    ui.heading("Hello World!");
+                                });
+                            });
+                            //
+                            //
                         },
                     )
                     .expect("Could not record draw context");
