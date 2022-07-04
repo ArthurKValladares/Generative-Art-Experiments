@@ -15,8 +15,9 @@ use easy_ash::{
     new_descriptor_image_info, AccessMask, ApiVersion, ApplicationInfo, BindingDesc, Buffer,
     BufferType, ClearValue, Context, DescriptorBufferInfo, DescriptorPool, DescriptorSet,
     DescriptorType, Device, Entry, Fence, GraphicsPipeline, GraphicsProgram, Image, ImageLayout,
-    ImageMemoryBarrier, InstanceInfo, PipelineStages, PushConstant, RenderPass, Sampler,
-    SamplerFilter, SamplerWrapMode, Semaphore, Shader, ShaderStage, Surface, Swapchain,
+    ImageMemoryBarrier, InstanceInfo, PipelineStages, PushConstant, RenderPass,
+    RenderPassAttachment, Sampler, SamplerFilter, SamplerWrapMode, Semaphore, Shader, ShaderStage,
+    Surface, Swapchain,
 };
 use winit::{
     dpi::LogicalSize,
@@ -113,6 +114,8 @@ fn main() {
     let mut render_pass = RenderPass::new(
         &device,
         &swapchain,
+        RenderPassAttachment::ColorClear,
+        RenderPassAttachment::DepthClear,
         &[
             ClearValue::Color(Vec4::new(1.0, 0.0, 1.0, 0.0)),
             ClearValue::Depth {
@@ -300,6 +303,7 @@ fn main() {
                     render_pass
                         .resize(&device, &swapchain)
                         .expect("Could not resize RenderPass");
+                    egui.resize(&device, &swapchain);
                 }
                 winit::event::WindowEvent::KeyboardInput { input, .. } => {
                     frame_context.keyboard_input = Some(input);

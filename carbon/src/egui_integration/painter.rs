@@ -1,5 +1,7 @@
 use crate::vertex::Vertex;
-use easy_ash::{Buffer, BufferType, ClearValue, Context, Device, RenderPass, Swapchain};
+use easy_ash::{
+    Buffer, BufferType, ClearValue, Context, Device, RenderPass, RenderPassAttachment, Swapchain,
+};
 use egui::{epaint::Primitive, ClippedPrimitive, FullOutput, Mesh, Rect};
 use math::vec::{Vec2, Vec4};
 
@@ -12,6 +14,8 @@ impl Painter {
         let egui_render_pass = RenderPass::new(
             &device,
             &swapchain,
+            RenderPassAttachment::ColorLoad,
+            RenderPassAttachment::DepthLoad,
             &[
                 ClearValue::Color(Vec4::new(1.0, 0.0, 1.0, 0.0)),
                 ClearValue::Depth {
@@ -102,5 +106,11 @@ impl Painter {
             //device.draw_indexed(context, mesh_draw.start_idx, mesh_draw.num_indices);
         }
         self.egui_render_pass.end(device, context);
+    }
+
+    pub fn resize(&mut self, device: &Device, swapchain: &Swapchain) {
+        self.egui_render_pass
+            .resize(device, swapchain)
+            .expect("Could not resize RenderPass");
     }
 }

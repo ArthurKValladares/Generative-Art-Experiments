@@ -64,4 +64,8 @@ impl EguiIntegration {
         );
         self.free_textures(textures_delta);
     }
+
+    pub fn resize(&mut self, device: &Device, swapchain: &Swapchain) {
+        self.painter.resize(device, swapchain);
+    }
 }
