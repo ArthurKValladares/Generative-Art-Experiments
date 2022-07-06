@@ -8,4 +8,16 @@ fn main() {
     shader_compiler
         .compile_shader("src/shaders/triangle.frag", ShaderStage::Fragment)
         .expect("Could not compile shader");
+    shader_compiler
+        .compile_shader(
+            "carbon/src/egui_integration/shaders/egui.vert",
+            ShaderStage::Vertex,
+        )
+        .expect("Could not compile shader");
+    shader_compiler
+        .compile_shader(
+            "carbon/src/egui_integration/shaders/egui.frag",
+            ShaderStage::Fragment,
+        )
+        .expect("Could not compile shader");
 }
