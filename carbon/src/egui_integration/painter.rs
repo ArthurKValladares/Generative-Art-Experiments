@@ -1,12 +1,14 @@
 use crate::vertex::Vertex;
 use easy_ash::{
-    Buffer, BufferType, ClearValue, Context, Device, RenderPass, RenderPassAttachment, Swapchain,
+    Buffer, BufferType, ClearValue, Context, Device, GraphicsPipeline, GraphicsProgram, RenderPass,
+    RenderPassAttachment, Shader, Swapchain,
 };
 use egui::{epaint::Primitive, ClippedPrimitive, FullOutput, Mesh, Rect};
 use math::vec::{Vec2, Vec4};
 
 pub struct Painter {
     egui_render_pass: RenderPass,
+    egui_pipeline: GraphicsPipeline,
 }
 
 impl Painter {
@@ -25,7 +27,33 @@ impl Painter {
             ],
         )
         .expect("Could not create RenderPass");
-        Self { egui_render_pass }
+
+        let egui_program = GraphicsProgram::new(
+            Shader::new(
+                &device,
+                "carbon/src/egui_integration/shaders/spv/egui.vert.spv",
+            )
+            .expect("Could not create vertex shader"),
+            Shader::new(
+                &device,
+                "carbon/src/egui_integration/shaders/spv/egui.frag.spv",
+            )
+            .expect("Could not create fragment shader"),
+        );
+        let egui_pipeline = GraphicsPipeline::new(
+            &device,
+            &swapchain,
+            &egui_render_pass,
+            &egui_program,
+            &[], // TODO: Descriptor set
+            &[],
+        )
+        .expect("Could not create graphics pipeline");
+
+        Self {
+            egui_render_pass,
+            egui_pipeline,
+        }
     }
 
     pub fn paint(
@@ -94,7 +122,7 @@ impl Painter {
         // Dummy draw logic, no texture (yet)
         self.egui_render_pass.begin(device, context, present_index);
         {
-            //egui_pipeline.bind(device, context);
+            self.egui_pipeline.bind(device, context);
             //device.bind_index_buffer(context, &index_buffer);
             //egui_pipeline.bind_descriptor_set(device, context, &egui_descriptor_set);
             //device.push_constant(
