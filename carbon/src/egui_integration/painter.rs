@@ -1,8 +1,9 @@
 use crate::vertex::Vertex;
 use easy_ash::{
-    BindingDesc, Buffer, BufferType, ClearValue, Context, DescriptorBufferInfo, DescriptorPool,
-    DescriptorSet, DescriptorType, Device, GraphicsPipeline, GraphicsProgram, RenderPass,
-    RenderPassAttachment, Sampler, SamplerFilter, SamplerWrapMode, Shader, ShaderStage, Swapchain,
+    BindingDesc, Buffer, BufferType, ClearValue, Context, DescriptorBufferInfo, DescriptorInfo,
+    DescriptorPool, DescriptorSet, DescriptorType, Device, GraphicsPipeline, GraphicsProgram,
+    RenderPass, RenderPassAttachment, Sampler, SamplerFilter, SamplerWrapMode, Shader, ShaderStage,
+    Swapchain,
 };
 use egui::{epaint::Primitive, ClippedPrimitive, FullOutput, Mesh, Rect};
 use math::vec::{Vec2, Vec4};
@@ -11,7 +12,7 @@ pub struct Painter {
     egui_render_pass: RenderPass,
     egui_pipeline: GraphicsPipeline,
     egui_descriptor_pool: DescriptorPool,
-    egui_descriptor_set: DescriptorSet,
+    //egui_descriptor_set: DescriptorSet,
     vertex_buffer: Buffer,
     index_buffer: Buffer,
     sampler: Sampler,
@@ -45,26 +46,19 @@ impl Painter {
 
         let egui_descriptor_pool =
             DescriptorPool::new(&device).expect("Could not create descriptor pool");
-        // TODO: I think I need to be able to create the descriptor set without needing the full infos
+
+        /*
         let bind_desc = vec![
+            BindingDesc::new(DescriptorType::StorageBuffer, 1, ShaderStage::Vertex),
             BindingDesc::new(
-                DescriptorType::StorageBuffer(DescriptorBufferInfo::new(
-                    &vertex_buffer,
-                    None,
-                    None,
-                )),
-                1,
-                ShaderStage::Vertex,
-            ),
-            BindingDesc::new(
-                DescriptorType::CombinedImageSampler(vec![]),
+                DescriptorType::CombinedImageSampler,
                 1,
                 ShaderStage::Fragment,
             ),
         ];
         let egui_descriptor_set = DescriptorSet::new(&device, &egui_descriptor_pool, &bind_desc)
             .expect("Could not create descriptor set");
-        egui_descriptor_set.update(&device);
+        */
 
         let egui_program = GraphicsProgram::new(
             Shader::new(
@@ -83,7 +77,7 @@ impl Painter {
             &swapchain,
             &egui_render_pass,
             &egui_program,
-            &[], // TODO: Descriptor set
+            &[/*&egui_descriptor_set*/],
             &[],
         )
         .expect("Could not create graphics pipeline");
@@ -92,7 +86,7 @@ impl Painter {
             egui_render_pass,
             egui_pipeline,
             egui_descriptor_pool,
-            egui_descriptor_set,
+            //egui_descriptor_set,
             vertex_buffer,
             index_buffer,
             sampler,
@@ -161,6 +155,14 @@ impl Painter {
             .expect("Could not create vertex buffer");
         let index_buffer = Buffer::from_data(&device, BufferType::Index, &indices)
             .expect("Could not create index buffer");
+
+        /*
+        self.egui_descriptor_set.bind(&[
+            DescriptorInfo::StorageBuffer(DescriptorBufferInfo::new(&vertex_buffer, None, None)),
+            DescriptorInfo::CombinedImageSampler(vec![]),
+        ]);
+        self.egui_descriptor_set.update(&device);
+        */
 
         // Dummy draw logic, no texture (yet)
         self.egui_render_pass.begin(device, context, present_index);

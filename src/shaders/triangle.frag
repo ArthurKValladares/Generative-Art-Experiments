@@ -1,8 +1,8 @@
 #version 450
 
-// Setting it to 50 for now, figure out how to do this properly later.
+// Setting it to 40 for now, figure out how to do this properly later.
 // Do I use specialization constants, or just set to a max value?
-layout (binding = 2) uniform sampler2D samplerColor[50];
+layout (binding = 2) uniform sampler2D samplerColor[40];
 
 layout (location = 0) in vec2 i_uv;
 layout (location = 1) in vec4 i_color;

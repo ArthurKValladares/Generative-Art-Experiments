@@ -13,9 +13,9 @@ use easy_ash::{
         vec::{Vec2, Vec4},
     },
     new_descriptor_image_info, AccessMask, ApiVersion, ApplicationInfo, BindingDesc, Buffer,
-    BufferType, ClearValue, Context, DescriptorBufferInfo, DescriptorPool, DescriptorSet,
-    DescriptorType, Device, Entry, Fence, GraphicsPipeline, GraphicsProgram, Image, ImageLayout,
-    ImageMemoryBarrier, InstanceInfo, PipelineStages, PushConstant, RenderPass,
+    BufferType, ClearValue, Context, DescriptorBufferInfo, DescriptorInfo, DescriptorPool,
+    DescriptorSet, DescriptorType, Device, Entry, Fence, GraphicsPipeline, GraphicsProgram, Image,
+    ImageLayout, ImageMemoryBarrier, InstanceInfo, PipelineStages, PushConstant, RenderPass,
     RenderPassAttachment, Sampler, SamplerFilter, SamplerWrapMode, Semaphore, Shader, ShaderStage,
     Surface, Swapchain,
 };
@@ -186,7 +186,7 @@ fn main() {
     // Scene setup end
 
     let descriptor_pool = DescriptorPool::new(&device).expect("Could not create descriptor pool");
-    let texture_array_count = 50;
+    let texture_array_count = 40;
     let infos = {
         let mut infos = images_data
             .iter()
@@ -198,25 +198,22 @@ fn main() {
         infos
     };
     let bind_desc = vec![
+        BindingDesc::new(DescriptorType::StorageBuffer, 1, ShaderStage::Vertex),
+        BindingDesc::new(DescriptorType::UniformBuffer, 1, ShaderStage::Vertex),
         BindingDesc::new(
-            DescriptorType::StorageBuffer(DescriptorBufferInfo::new(&vertex_buffer, None, None)),
-            1,
-            ShaderStage::Vertex,
-        ),
-        BindingDesc::new(
-            DescriptorType::UniformBuffer(DescriptorBufferInfo::new(&camera_buffer, None, None)),
-            1,
-            ShaderStage::Vertex,
-        ),
-        BindingDesc::new(
-            DescriptorType::CombinedImageSampler(infos),
+            DescriptorType::CombinedImageSampler,
             texture_array_count,
             ShaderStage::Fragment,
         ),
     ];
 
-    let global_descriptor_set = DescriptorSet::new(&device, &descriptor_pool, &bind_desc)
+    let mut global_descriptor_set = DescriptorSet::new(&device, &descriptor_pool, &bind_desc)
         .expect("Could not create descriptor set");
+    global_descriptor_set.bind(&[
+        DescriptorInfo::StorageBuffer(DescriptorBufferInfo::new(&vertex_buffer, None, None)),
+        DescriptorInfo::UniformBuffer(DescriptorBufferInfo::new(&camera_buffer, None, None)),
+        DescriptorInfo::CombinedImageSampler(infos),
+    ]);
     global_descriptor_set.update(&device);
 
     // TODO: handle offset automatically in new abstraction
