@@ -12,9 +12,7 @@ pub struct Painter {
     egui_render_pass: RenderPass,
     egui_pipeline: GraphicsPipeline,
     egui_descriptor_pool: DescriptorPool,
-    //egui_descriptor_set: DescriptorSet,
-    vertex_buffer: Buffer,
-    index_buffer: Buffer,
+    egui_descriptor_set: DescriptorSet,
     sampler: Sampler,
 }
 
@@ -38,27 +36,19 @@ impl Painter {
         let sampler = Sampler::new(&device, SamplerFilter::Nearest, SamplerWrapMode::Clamp)
             .expect("Could not create sampler");
 
-        // TODO: Figure out the vertex/index buffer situation, it needs to be updated every frame (sorta)
-        let vertex_buffer = Buffer::from_data(&device, BufferType::Storage, &[0u32])
-            .expect("Could not create vertex buffer");
-        let index_buffer = Buffer::from_data(&device, BufferType::Index, &[0u32])
-            .expect("Could not create index buffer");
-
         let egui_descriptor_pool =
             DescriptorPool::new(&device).expect("Could not create descriptor pool");
 
-        /*
         let bind_desc = vec![
             BindingDesc::new(DescriptorType::StorageBuffer, 1, ShaderStage::Vertex),
-            BindingDesc::new(
-                DescriptorType::CombinedImageSampler,
-                1,
-                ShaderStage::Fragment,
-            ),
+            //BindingDesc::new(
+            //    DescriptorType::CombinedImageSampler,
+            //    1,
+            //    ShaderStage::Fragment,
+            //),
         ];
         let egui_descriptor_set = DescriptorSet::new(&device, &egui_descriptor_pool, &bind_desc)
             .expect("Could not create descriptor set");
-        */
 
         let egui_program = GraphicsProgram::new(
             Shader::new(
@@ -77,7 +67,7 @@ impl Painter {
             &swapchain,
             &egui_render_pass,
             &egui_program,
-            &[/*&egui_descriptor_set*/],
+            &[&egui_descriptor_set],
             &[],
         )
         .expect("Could not create graphics pipeline");
@@ -86,9 +76,7 @@ impl Painter {
             egui_render_pass,
             egui_pipeline,
             egui_descriptor_pool,
-            //egui_descriptor_set,
-            vertex_buffer,
-            index_buffer,
+            egui_descriptor_set,
             sampler,
         }
     }
@@ -156,27 +144,20 @@ impl Painter {
         let index_buffer = Buffer::from_data(&device, BufferType::Index, &indices)
             .expect("Could not create index buffer");
 
-        /*
         self.egui_descriptor_set.bind(&[
             DescriptorInfo::StorageBuffer(DescriptorBufferInfo::new(&vertex_buffer, None, None)),
-            DescriptorInfo::CombinedImageSampler(vec![]),
+            //DescriptorInfo::CombinedImageSampler(vec![]),
         ]);
         self.egui_descriptor_set.update(&device);
-        */
 
         // Dummy draw logic, no texture (yet)
         self.egui_render_pass.begin(device, context, present_index);
         {
             self.egui_pipeline.bind(device, context);
-            //device.bind_index_buffer(context, &index_buffer);
-            //egui_pipeline.bind_descriptor_set(device, context, &egui_descriptor_set);
-            //device.push_constant(
-            //    context,
-            //    &egui_pipeline,
-            //    &material_push_constant,
-            //    easy_ash::as_u8_slice(&material_data),
-            //);
-            //device.draw_indexed(context, mesh_draw.start_idx, mesh_draw.num_indices);
+            device.bind_index_buffer(context, &index_buffer);
+            self.egui_pipeline
+                .bind_descriptor_set(device, context, &self.egui_descriptor_set);
+            device.draw_indexed(context, 0, indices.len() as u32);
         }
         self.egui_render_pass.end(device, context);
     }
