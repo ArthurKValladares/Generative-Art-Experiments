@@ -58,6 +58,7 @@ impl EguiIntegration {
         self.painter.paint(
             device,
             context,
+            window,
             present_index,
             self.egui_context.pixels_per_point(),
             &clipped_primitives,

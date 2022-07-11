@@ -2,17 +2,28 @@ use crate::vertex::Vertex;
 use easy_ash::{
     BindingDesc, Buffer, BufferType, ClearValue, Context, DescriptorBufferInfo, DescriptorInfo,
     DescriptorPool, DescriptorSet, DescriptorType, Device, GraphicsPipeline, GraphicsProgram,
-    RenderPass, RenderPassAttachment, Sampler, SamplerFilter, SamplerWrapMode, Shader, ShaderStage,
-    Swapchain,
+    PushConstant, RenderPass, RenderPassAttachment, Sampler, SamplerFilter, SamplerWrapMode,
+    Shader, ShaderStage, Swapchain,
 };
 use egui::{epaint::Primitive, ClippedPrimitive, FullOutput, Mesh, Rect};
 use math::vec::{Vec2, Vec4};
+use winit::window::Window;
+
+#[repr(C)]
+#[derive(Clone, Debug, Copy)]
+struct EguiPushConstantData {
+    width: u32,
+    height: u32,
+    pad_1: u32,
+    pad_2: u32,
+}
 
 pub struct Painter {
     egui_render_pass: RenderPass,
     egui_pipeline: GraphicsPipeline,
     egui_descriptor_pool: DescriptorPool,
     egui_descriptor_set: DescriptorSet,
+    egui_push_constant: PushConstant,
     sampler: Sampler,
 }
 
@@ -38,7 +49,6 @@ impl Painter {
 
         let egui_descriptor_pool =
             DescriptorPool::new(&device).expect("Could not create descriptor pool");
-
         let bind_desc = vec![
             BindingDesc::new(DescriptorType::StorageBuffer, 1, ShaderStage::Vertex),
             //BindingDesc::new(
@@ -47,6 +57,13 @@ impl Painter {
             //    ShaderStage::Fragment,
             //),
         ];
+
+        let egui_push_constant = PushConstant {
+            stage: ShaderStage::Vertex,
+            offset: 0,
+            size: std::mem::size_of::<EguiPushConstantData>() as u32,
+        };
+
         let egui_descriptor_set = DescriptorSet::new(&device, &egui_descriptor_pool, &bind_desc)
             .expect("Could not create descriptor set");
 
@@ -68,7 +85,8 @@ impl Painter {
             &egui_render_pass,
             &egui_program,
             &[&egui_descriptor_set],
-            &[],
+            &[&egui_push_constant],
+            false,
         )
         .expect("Could not create graphics pipeline");
 
@@ -77,6 +95,7 @@ impl Painter {
             egui_pipeline,
             egui_descriptor_pool,
             egui_descriptor_set,
+            egui_push_constant,
             sampler,
         }
     }
@@ -85,6 +104,7 @@ impl Painter {
         &mut self,
         device: &Device,
         context: &Context,
+        window: &Window,
         present_index: u32,
         pixels_per_point: f32,
         clipped_primitives: &[ClippedPrimitive],
@@ -99,6 +119,7 @@ impl Painter {
                     self.paint_mesh(
                         device,
                         context,
+                        window,
                         present_index,
                         pixels_per_point,
                         clip_rect,
@@ -116,6 +137,7 @@ impl Painter {
         &mut self,
         device: &Device,
         context: &Context,
+        window: &Window,
         present_index: u32,
         pixels_per_point: f32,
         clip_rect: &Rect,
@@ -126,7 +148,7 @@ impl Painter {
             .vertices
             .iter()
             .map(|vertex| Vertex {
-                pos: Vec4::new(vertex.pos.x, vertex.pos.y, 0.0, 1.0),
+                pos: Vec4::new(vertex.pos.x, vertex.pos.y, 0.03, 1.0),
                 color: Vec4::new(
                     vertex.color.r() as f32 / 255.0,
                     vertex.color.g() as f32 / 255.0,
@@ -151,8 +173,21 @@ impl Painter {
         self.egui_descriptor_set.update(&device);
 
         // Dummy draw logic, no texture (yet)
+        let size = window.inner_size();
         self.egui_render_pass.begin(device, context, present_index);
         {
+            device.push_constant(
+                context,
+                &self.egui_pipeline,
+                &self.egui_push_constant,
+                easy_ash::as_u8_slice(&EguiPushConstantData {
+                    width: size.width,
+                    height: size.height,
+                    pad_1: 0,
+                    pad_2: 0,
+                }),
+            );
+
             self.egui_pipeline.bind(device, context);
             device.bind_index_buffer(context, &index_buffer);
             self.egui_pipeline

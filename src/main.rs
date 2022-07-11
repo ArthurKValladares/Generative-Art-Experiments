@@ -235,6 +235,7 @@ fn main() {
         &graphics_program,
         &[&global_descriptor_set],
         &[&camera_push_constant, &material_push_constant],
+        true,
     )
     .expect("Could not create graphics pipeline");
 
