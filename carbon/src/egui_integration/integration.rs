@@ -1,6 +1,9 @@
 use super::Painter;
-use easy_ash::{Context, Device, Swapchain};
-use egui::{PlatformOutput, RawInput, TexturesDelta};
+use bytes::Bytes;
+use easy_ash::{Context, Device, Fence, Image, Swapchain};
+use egui::{
+    color, epaint::ImageDelta, ImageData, PlatformOutput, RawInput, TextureId, TexturesDelta,
+};
 use winit::window::Window;
 
 // NOTE: based heavily on:
@@ -29,7 +32,46 @@ impl EguiIntegration {
         self.egui_winit.take_egui_input(window)
     }
 
-    fn set_textures(&mut self, _textures_delta: &TexturesDelta) {}
+    fn set_textures(
+        &mut self,
+        device: &Device,
+        context: &Context,
+        fence: &Fence,
+        textures_delta: &TexturesDelta,
+    ) {
+        for (id, delta) in &textures_delta.set {
+            self.set_image(device, context, fence, id, delta);
+        }
+    }
+
+    fn set_image(
+        &mut self,
+        device: &Device,
+        context: &Context,
+        fence: &Fence,
+        id: &TextureId,
+        delta: &ImageDelta,
+    ) {
+        // TODO: Always updating full image for now
+        // I think this might also be inneficient, investigate later the best way to get the byte vector with
+        // no extra allocations
+        match &delta.image {
+            ImageData::Color(color_data) => {
+                let image = Image::from_data_and_dims(
+                    &device,
+                    &context,
+                    &fence,
+                    color_data.width() as u32,
+                    color_data.height() as u32,
+                    easy_ash::as_u8_slice(&color_data.pixels),
+                )
+                .expect("Could not crate image");
+            }
+            ImageData::Font(font_data) => {
+                // TODO: Figure this out later
+            }
+        }
+    }
 
     fn free_textures(&mut self, _textures_delta: TexturesDelta) {}
 
@@ -37,6 +79,7 @@ impl EguiIntegration {
         &mut self,
         device: &Device,
         context: &Context,
+        fence: &Fence,
         present_index: u32,
         window: &Window,
         f: impl FnOnce(&egui::Context),
@@ -54,7 +97,7 @@ impl EguiIntegration {
             .handle_platform_output(window, &self.egui_context, platform_output);
 
         // TODO? Make this a separate step
-        self.set_textures(&textures_delta);
+        self.set_textures(device, context, fence, &textures_delta);
         self.painter.paint(
             device,
             context,

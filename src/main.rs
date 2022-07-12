@@ -378,11 +378,18 @@ fn main() {
 
                             // Egui UI pass
                             //
-                            egui.run(&device, context, present_index, &window, |context| {
-                                egui::SidePanel::left("Test Panel").show(context, |ui| {
-                                    ui.heading("Hello World!");
-                                });
-                            });
+                            egui.run(
+                                &device,
+                                context,
+                                &draw_commands_reuse_fence,
+                                present_index,
+                                &window,
+                                |context| {
+                                    egui::SidePanel::left("Test Panel").show(context, |ui| {
+                                        ui.heading("Hello World!");
+                                    });
+                                },
+                            );
                             //
                             //
                         },

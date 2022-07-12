@@ -39,7 +39,7 @@ where
 pub struct ImageData {
     pub width: u32,
     pub height: u32,
-    pub bytes: Bytes,
+    pub bytes: Vec<u8>,
 }
 
 pub struct GltfScene {
@@ -57,19 +57,19 @@ impl GltfScene {
             .map(|image_data| ImageData {
                 width: image_data.width,
                 height: image_data.height,
-                bytes: Bytes::from(build_rgba_buffer(image_data)),
+                bytes: build_rgba_buffer(image_data),
             })
             .collect::<Vec<_>>();
         // Add 1x1 white texture to the back
         images.push(ImageData {
             width: 1,
             height: 1,
-            bytes: Bytes::from(build_rgba_buffer(gltf::image::Data {
+            bytes: build_rgba_buffer(gltf::image::Data {
                 pixels: vec![255, 255, 255, 255],
                 format: gltf::image::Format::R8G8B8A8,
                 width: 1,
                 height: 1,
-            })),
+            }),
         });
         Ok(Self {
             gltf: document,
