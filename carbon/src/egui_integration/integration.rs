@@ -69,4 +69,8 @@ impl EguiIntegration {
     pub fn resize(&mut self, device: &Device, swapchain: &Swapchain) {
         self.painter.resize(device, swapchain);
     }
+
+    pub fn clean_buffers(&mut self, device: &Device) {
+        self.painter.clean_buffers(device);
+    }
 }

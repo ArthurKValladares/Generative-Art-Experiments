@@ -25,6 +25,9 @@ pub struct Painter {
     egui_descriptor_set: DescriptorSet,
     egui_push_constant: PushConstant,
     sampler: Sampler,
+    // TODO: Better way to do this? Better way to handle these transient buffers in general
+    vertex_buffer: Option<Buffer>,
+    index_buffer: Option<Buffer>,
 }
 
 impl Painter {
@@ -97,6 +100,8 @@ impl Painter {
             egui_descriptor_set,
             egui_push_constant,
             sampler,
+            vertex_buffer: None,
+            index_buffer: None,
         }
     }
 
@@ -195,11 +200,25 @@ impl Painter {
             device.draw_indexed(context, 0, indices.len() as u32);
         }
         self.egui_render_pass.end(device, context);
+
+        self.vertex_buffer = Some(vertex_buffer);
+        self.index_buffer = Some(index_buffer);
     }
 
     pub fn resize(&mut self, device: &Device, swapchain: &Swapchain) {
         self.egui_render_pass
             .resize(device, swapchain)
             .expect("Could not resize RenderPass");
+    }
+
+    pub fn clean_buffers(&mut self, device: &Device) {
+        unsafe {
+            if let Some(vertex_buffer) = &self.vertex_buffer {
+                vertex_buffer.clean(&device);
+            }
+            if let Some(index_buffer) = &self.index_buffer {
+                index_buffer.clean(&device);
+            }
+        }
     }
 }
