@@ -4,6 +4,7 @@ use easy_ash::{Context, Device, Fence, Image, Swapchain};
 use egui::{
     color, epaint::ImageDelta, ImageData, PlatformOutput, RawInput, TextureId, TexturesDelta,
 };
+use std::collections::HashMap;
 use winit::window::Window;
 
 // NOTE: based heavily on:
@@ -13,6 +14,7 @@ pub struct EguiIntegration {
     egui_context: egui::Context,
     egui_winit: egui_winit::State,
     painter: Painter,
+    texture_map: HashMap<TextureId, Image>,
 }
 
 impl EguiIntegration {
@@ -25,6 +27,7 @@ impl EguiIntegration {
             egui_context,
             egui_winit,
             painter,
+            texture_map: Default::default(),
         }
     }
 
@@ -55,9 +58,12 @@ impl EguiIntegration {
         // TODO: Always updating full image for now
         // I think this might also be inneficient, investigate later the best way to get the byte vector with
         // no extra allocations
+        // TODO: Need to figure out how syncronization works here. I need to be able to fully upload the image before rendering.
+        // I think I want to have the set and free texture steps as separate steps outside command buffering recording for the draws
         match &delta.image {
             ImageData::Color(color_data) => {
-                let image = Image::from_data_and_dims(
+                // TODO: Do something with this buffer
+                let (image, buffer) = Image::from_data_and_dims(
                     &device,
                     &context,
                     &fence,
@@ -66,9 +72,19 @@ impl EguiIntegration {
                     easy_ash::as_u8_slice(&color_data.pixels),
                 )
                 .expect("Could not crate image");
+                self.texture_map.insert(*id, image);
             }
             ImageData::Font(font_data) => {
-                // TODO: Figure this out later
+                let (image, buffer) = Image::from_data_and_dims(
+                    &device,
+                    &context,
+                    &fence,
+                    font_data.width() as u32,
+                    font_data.height() as u32,
+                    easy_ash::as_u8_slice(&font_data.pixels),
+                )
+                .expect("Could not crate image");
+                self.texture_map.insert(*id, image);
             }
         }
     }

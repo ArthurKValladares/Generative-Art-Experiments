@@ -381,7 +381,7 @@ fn main() {
                             egui.run(
                                 &device,
                                 context,
-                                &draw_commands_reuse_fence,
+                                &setup_commands_reuse_fence,
                                 present_index,
                                 &window,
                                 |context| {
