@@ -7,9 +7,6 @@ use egui::{
 use std::collections::HashMap;
 use winit::window::Window;
 
-// NOTE: based heavily on:
-// https://github.com/emilk/egui/tree/master/egui_glium/src
-
 pub struct EguiIntegration {
     egui_context: egui::Context,
     egui_winit: egui_winit::State,
