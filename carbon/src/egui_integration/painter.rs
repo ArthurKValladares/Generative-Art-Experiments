@@ -247,6 +247,7 @@ impl Painter {
                     color_data.width() as u32,
                     color_data.height() as u32,
                     easy_ash::as_u8_slice(&color_data.pixels),
+                    false,
                 )
                 .expect("Could not crate image");
                 self.texture_map.insert(*id, image);
@@ -259,6 +260,7 @@ impl Painter {
                     font_data.width() as u32,
                     font_data.height() as u32,
                     easy_ash::as_u8_slice(&font_data.pixels),
+                    false,
                 )
                 .expect("Could not crate image");
                 self.texture_map.insert(*id, image);

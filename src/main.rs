@@ -151,6 +151,7 @@ fn main() {
                 image_data.width,
                 image_data.height,
                 &image_data.bytes,
+                true,
             )
             .expect("Could not crate image")
         })
