@@ -1,11 +1,16 @@
+use std::collections::HashMap;
+
 use crate::vertex::Vertex;
 use easy_ash::{
     BindingDesc, Buffer, BufferType, ClearValue, Context, DescriptorBufferInfo, DescriptorInfo,
-    DescriptorPool, DescriptorSet, DescriptorType, Device, GraphicsPipeline, GraphicsProgram,
-    PushConstant, RenderPass, RenderPassAttachment, Sampler, SamplerFilter, SamplerWrapMode,
-    Shader, ShaderStage, Swapchain,
+    DescriptorPool, DescriptorSet, DescriptorType, Device, Fence, GraphicsPipeline,
+    GraphicsProgram, Image, PushConstant, RenderPass, RenderPassAttachment, Sampler, SamplerFilter,
+    SamplerWrapMode, Shader, ShaderStage, Swapchain,
 };
-use egui::{epaint::Primitive, ClippedPrimitive, FullOutput, Mesh, Rect};
+use egui::{
+    epaint::{ImageDelta, Primitive},
+    ClippedPrimitive, FullOutput, ImageData, Mesh, Rect, TextureId, TexturesDelta,
+};
 use math::vec::{Vec2, Vec4};
 use winit::window::Window;
 
@@ -25,6 +30,7 @@ pub struct Painter {
     egui_descriptor_set: DescriptorSet,
     egui_push_constant: PushConstant,
     sampler: Sampler,
+    texture_map: HashMap<TextureId, Image>,
     // TODO: Better way to do this? Better way to handle these transient buffers in general
     vertex_buffer: Option<Buffer>,
     index_buffer: Option<Buffer>,
@@ -102,6 +108,7 @@ impl Painter {
             sampler,
             vertex_buffer: None,
             index_buffer: None,
+            texture_map: Default::default(),
         }
     }
 
@@ -203,6 +210,60 @@ impl Painter {
 
         self.vertex_buffer = Some(vertex_buffer);
         self.index_buffer = Some(index_buffer);
+    }
+
+    pub fn set_textures(
+        &mut self,
+        device: &Device,
+        context: &Context,
+        fence: &Fence,
+        textures_delta: &TexturesDelta,
+    ) {
+        for (id, delta) in &textures_delta.set {
+            self.set_image(device, context, fence, id, delta);
+        }
+    }
+
+    fn set_image(
+        &mut self,
+        device: &Device,
+        context: &Context,
+        fence: &Fence,
+        id: &TextureId,
+        delta: &ImageDelta,
+    ) {
+        // TODO: Always updating full image for now
+        // I think this might also be inneficient, investigate later the best way to get the byte vector with
+        // no extra allocations
+        // TODO: Need to figure out how syncronization works here. I need to be able to fully upload the image before rendering.
+        // I think I want to have the set and free texture steps as separate steps outside command buffering recording for the draws
+        match &delta.image {
+            ImageData::Color(color_data) => {
+                // TODO: Do something with this buffer
+                let (image, buffer) = Image::from_data_and_dims(
+                    &device,
+                    &context,
+                    &fence,
+                    color_data.width() as u32,
+                    color_data.height() as u32,
+                    easy_ash::as_u8_slice(&color_data.pixels),
+                )
+                .expect("Could not crate image");
+                self.texture_map.insert(*id, image);
+            }
+            ImageData::Font(font_data) => {
+                let (image, buffer) = Image::from_data_and_dims(
+                    &device,
+                    &context,
+                    &fence,
+                    font_data.width() as u32,
+                    font_data.height() as u32,
+                    easy_ash::as_u8_slice(&font_data.pixels),
+                )
+                .expect("Could not crate image");
+                self.texture_map.insert(*id, image);
+            }
+        }
     }
 
     pub fn resize(&mut self, device: &Device, swapchain: &Swapchain) {

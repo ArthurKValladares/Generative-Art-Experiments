@@ -11,7 +11,6 @@ pub struct EguiIntegration {
     egui_context: egui::Context,
     egui_winit: egui_winit::State,
     painter: Painter,
-    texture_map: HashMap<TextureId, Image>,
 }
 
 impl EguiIntegration {
@@ -24,7 +23,6 @@ impl EguiIntegration {
             egui_context,
             egui_winit,
             painter,
-            texture_map: Default::default(),
         }
     }
 
@@ -39,51 +37,8 @@ impl EguiIntegration {
         fence: &Fence,
         textures_delta: &TexturesDelta,
     ) {
-        for (id, delta) in &textures_delta.set {
-            self.set_image(device, context, fence, id, delta);
-        }
-    }
-
-    fn set_image(
-        &mut self,
-        device: &Device,
-        context: &Context,
-        fence: &Fence,
-        id: &TextureId,
-        delta: &ImageDelta,
-    ) {
-        // TODO: Always updating full image for now
-        // I think this might also be inneficient, investigate later the best way to get the byte vector with
-        // no extra allocations
-        // TODO: Need to figure out how syncronization works here. I need to be able to fully upload the image before rendering.
-        // I think I want to have the set and free texture steps as separate steps outside command buffering recording for the draws
-        match &delta.image {
-            ImageData::Color(color_data) => {
-                // TODO: Do something with this buffer
-                let (image, buffer) = Image::from_data_and_dims(
-                    &device,
-                    &context,
-                    &fence,
-                    color_data.width() as u32,
-                    color_data.height() as u32,
-                    easy_ash::as_u8_slice(&color_data.pixels),
-                )
-                .expect("Could not crate image");
-                self.texture_map.insert(*id, image);
-            }
-            ImageData::Font(font_data) => {
-                let (image, buffer) = Image::from_data_and_dims(
-                    &device,
-                    &context,
-                    &fence,
-                    font_data.width() as u32,
-                    font_data.height() as u32,
-                    easy_ash::as_u8_slice(&font_data.pixels),
-                )
-                .expect("Could not crate image");
-                self.texture_map.insert(*id, image);
-            }
-        }
+        self.painter
+            .set_textures(device, context, fence, textures_delta);
     }
 
     fn free_textures(&mut self, _textures_delta: TexturesDelta) {}
