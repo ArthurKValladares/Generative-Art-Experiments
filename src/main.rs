@@ -61,7 +61,7 @@ fn main() {
     let entry = Entry::new(
         ApplicationInfo::default()
             .with_application_name(app_title)
-            .with_api_version(ApiVersion::new(0, 1, 2, 0)),
+            .with_api_version(ApiVersion::new(0, 1, 3, 0)),
         InstanceInfo::default(),
         &window,
     )
