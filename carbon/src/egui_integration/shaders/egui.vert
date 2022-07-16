@@ -50,7 +50,6 @@ void main() {
 
     o_uv = v.uv;
     o_color = linear_from_srgba(v.color);
-    //gl_Position = v.pos;
     gl_Position = vec4(
         2.0 * v.pos.x / PushConstants.screen_width - 1.0,
         1.0 - 2.0 * v.pos.y / PushConstants.screen_height,

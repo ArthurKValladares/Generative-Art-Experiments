@@ -2,10 +2,10 @@ use std::collections::HashMap;
 
 use crate::vertex::Vertex;
 use easy_ash::{
-    BindingDesc, Buffer, BufferType, ClearValue, Context, DescriptorBufferInfo, DescriptorInfo,
-    DescriptorPool, DescriptorSet, DescriptorType, Device, Fence, GraphicsPipeline,
-    GraphicsProgram, Image, PushConstant, RenderPass, RenderPassAttachment, Sampler, SamplerFilter,
-    SamplerWrapMode, Shader, ShaderStage, Swapchain,
+    new_descriptor_image_info, BindingDesc, Buffer, BufferType, ClearValue, Context,
+    DescriptorBufferInfo, DescriptorInfo, DescriptorPool, DescriptorSet, DescriptorType, Device,
+    Fence, GraphicsPipeline, GraphicsProgram, Image, PushConstant, RenderPass,
+    RenderPassAttachment, Sampler, SamplerFilter, SamplerWrapMode, Shader, ShaderStage, Swapchain,
 };
 use egui::{
     epaint::{ImageDelta, Primitive},
@@ -60,11 +60,11 @@ impl Painter {
             DescriptorPool::new(&device).expect("Could not create descriptor pool");
         let bind_desc = vec![
             BindingDesc::new(DescriptorType::StorageBuffer, 1, ShaderStage::Vertex),
-            //BindingDesc::new(
-            //    DescriptorType::CombinedImageSampler,
-            //    1,
-            //    ShaderStage::Fragment,
-            //),
+            BindingDesc::new(
+                DescriptorType::CombinedImageSampler,
+                1,
+                ShaderStage::Fragment,
+            ),
         ];
 
         let egui_push_constant = PushConstant {
@@ -178,9 +178,16 @@ impl Painter {
         let index_buffer = Buffer::from_data(&device, BufferType::Index, &indices)
             .expect("Could not create index buffer");
 
+        let image = self
+            .texture_map
+            .get(&mesh.texture_id)
+            .expect("TextureId not in map");
         self.egui_descriptor_set.bind(&[
             DescriptorInfo::StorageBuffer(DescriptorBufferInfo::new(&vertex_buffer, None, None)),
-            //DescriptorInfo::CombinedImageSampler(vec![]),
+            DescriptorInfo::CombinedImageSampler(vec![new_descriptor_image_info(
+                &image,
+                &self.sampler,
+            )]),
         ]);
         self.egui_descriptor_set.update(&device);
 
