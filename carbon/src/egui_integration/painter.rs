@@ -156,21 +156,7 @@ impl Painter {
         mesh: &Mesh,
     ) {
         // TODO: ideally we want an egui shader that can take this vertex output as is
-        let vertices = mesh
-            .vertices
-            .iter()
-            .map(|vertex| Vertex {
-                pos: Vec4::new(vertex.pos.x, vertex.pos.y, 0.03, 1.0),
-                color: Vec4::new(
-                    vertex.color.r() as f32 / 255.0,
-                    vertex.color.g() as f32 / 255.0,
-                    vertex.color.b() as f32 / 255.0,
-                    vertex.color.a() as f32 / 255.0,
-                ),
-                uv: Vec2::new(vertex.uv.x, vertex.uv.y),
-                pad: Vec2::zero(),
-            })
-            .collect::<Vec<_>>();
+        let vertices = &mesh.vertices;
         let indices = &mesh.indices;
 
         let vertex_buffer = Buffer::from_data(&device, BufferType::Storage, &vertices)
@@ -189,6 +175,8 @@ impl Painter {
                 &self.sampler,
             )]),
         ]);
+        // Crash here
+        println!("Id: {:?}", mesh.texture_id);
         self.egui_descriptor_set.update(&device);
 
         // Dummy draw logic, no texture (yet)
@@ -246,7 +234,7 @@ impl Painter {
         // I think I want to have the set and free texture steps as separate steps outside command buffering recording for the draws
         match &delta.image {
             ImageData::Color(color_data) => {
-                // TODO: Do something with this buffer
+                println!("IMAGE: {:?}", id);
                 let (image, buffer) = Image::from_data_and_dims(
                     &device,
                     &context,
@@ -260,6 +248,7 @@ impl Painter {
                 self.texture_map.insert(*id, image);
             }
             ImageData::Font(font_data) => {
+                println!("FONT: {:?}", id);
                 let (image, buffer) = Image::from_data_and_dims(
                     &device,
                     &context,
