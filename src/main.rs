@@ -234,6 +234,7 @@ fn main() {
         &swapchain,
         &render_pass,
         &graphics_program,
+        None,
         &[&global_descriptor_set],
         &[&camera_push_constant, &material_push_constant],
         true,

@@ -2,10 +2,11 @@ use std::collections::HashMap;
 
 use crate::vertex::Vertex;
 use easy_ash::{
-    new_descriptor_image_info, BindingDesc, Buffer, BufferType, ClearValue, Context,
+    ash::vk, new_descriptor_image_info, BindingDesc, Buffer, BufferType, ClearValue, Context,
     DescriptorBufferInfo, DescriptorInfo, DescriptorPool, DescriptorSet, DescriptorType, Device,
     Fence, GraphicsPipeline, GraphicsProgram, Image, PushConstant, RenderPass,
     RenderPassAttachment, Sampler, SamplerFilter, SamplerWrapMode, Shader, ShaderStage, Swapchain,
+    VertexInputData,
 };
 use egui::{
     epaint::{ImageDelta, Primitive},
@@ -58,14 +59,11 @@ impl Painter {
 
         let egui_descriptor_pool =
             DescriptorPool::new(&device).expect("Could not create descriptor pool");
-        let bind_desc = vec![
-            BindingDesc::new(DescriptorType::StorageBuffer, 1, ShaderStage::Vertex),
-            BindingDesc::new(
-                DescriptorType::CombinedImageSampler,
-                1,
-                ShaderStage::Fragment,
-            ),
-        ];
+        let bind_desc = vec![BindingDesc::new(
+            DescriptorType::CombinedImageSampler,
+            1,
+            ShaderStage::Fragment,
+        )];
 
         let egui_push_constant = PushConstant {
             stage: ShaderStage::Vertex,
@@ -93,6 +91,39 @@ impl Painter {
             &swapchain,
             &egui_render_pass,
             &egui_program,
+            Some(VertexInputData {
+                bindings: vec![vk::VertexInputBindingDescription::builder()
+                    .binding(0)
+                    .input_rate(vk::VertexInputRate::VERTEX)
+                    .stride(
+                        4 * std::mem::size_of::<f32>() as u32
+                            + 4 * std::mem::size_of::<u8>() as u32,
+                    )
+                    .build()],
+                attributes: vec![
+                    // position
+                    vk::VertexInputAttributeDescription::builder()
+                        .binding(0)
+                        .offset(0)
+                        .location(0)
+                        .format(vk::Format::R32G32_SFLOAT)
+                        .build(),
+                    // uv
+                    vk::VertexInputAttributeDescription::builder()
+                        .binding(0)
+                        .offset(8)
+                        .location(1)
+                        .format(vk::Format::R32G32_SFLOAT)
+                        .build(),
+                    // color
+                    vk::VertexInputAttributeDescription::builder()
+                        .binding(0)
+                        .offset(16)
+                        .location(2)
+                        .format(vk::Format::R8G8B8A8_UNORM)
+                        .build(),
+                ],
+            }),
             &[&egui_descriptor_set],
             &[&egui_push_constant],
             false,
@@ -159,7 +190,7 @@ impl Painter {
         let vertices = &mesh.vertices;
         let indices = &mesh.indices;
 
-        let vertex_buffer = Buffer::from_data(&device, BufferType::Storage, &vertices)
+        let vertex_buffer = Buffer::from_data(&device, BufferType::Vertex, &vertices)
             .expect("Could not create vertex buffer");
         let index_buffer = Buffer::from_data(&device, BufferType::Index, &indices)
             .expect("Could not create index buffer");
@@ -168,13 +199,10 @@ impl Painter {
             .texture_map
             .get(&mesh.texture_id)
             .expect("TextureId not in map");
-        self.egui_descriptor_set.bind(&[
-            DescriptorInfo::StorageBuffer(DescriptorBufferInfo::new(&vertex_buffer, None, None)),
-            DescriptorInfo::CombinedImageSampler(vec![new_descriptor_image_info(
-                &image,
-                &self.sampler,
-            )]),
-        ]);
+        self.egui_descriptor_set
+            .bind(&[DescriptorInfo::CombinedImageSampler(vec![
+                new_descriptor_image_info(&image, &self.sampler),
+            ])]);
         // Crash here
         println!("Id: {:?}", mesh.texture_id);
         self.egui_descriptor_set.update(&device);
@@ -196,6 +224,7 @@ impl Painter {
             );
 
             self.egui_pipeline.bind(device, context);
+            device.bind_vertex_buffers(context, &[&vertex_buffer]);
             device.bind_index_buffer(context, &index_buffer);
             self.egui_pipeline
                 .bind_descriptor_set(device, context, &self.egui_descriptor_set);
