@@ -186,6 +186,13 @@ impl Painter {
         clip_rect: &Rect,
         mesh: &Mesh,
     ) {
+        if let Some(vertex_buffer) = &self.vertex_buffer {
+            unsafe { vertex_buffer.clean(device) };
+        }
+        if let Some(index_buffer) = &self.index_buffer {
+            unsafe { index_buffer.clean(device) };
+        }
+
         // TODO: ideally we want an egui shader that can take this vertex output as is
         let vertices = &mesh.vertices;
         let indices = &mesh.indices;
@@ -203,8 +210,6 @@ impl Painter {
             .bind(&[DescriptorInfo::CombinedImageSampler(vec![
                 new_descriptor_image_info(&image, &self.sampler),
             ])]);
-        // Crash here
-        println!("Id: {:?}", mesh.texture_id);
         self.egui_descriptor_set.update(&device);
 
         // Dummy draw logic, no texture (yet)
