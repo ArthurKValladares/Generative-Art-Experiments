@@ -18,10 +18,7 @@ use winit::window::Window;
 #[repr(C)]
 #[derive(Clone, Debug, Copy)]
 struct EguiPushConstantData {
-    width: u32,
-    height: u32,
-    pad_1: u32,
-    pad_2: u32,
+    size: Vec2,
 }
 
 pub struct Painter {
@@ -221,10 +218,7 @@ impl Painter {
                 &self.egui_pipeline,
                 &self.egui_push_constant,
                 easy_ash::as_u8_slice(&EguiPushConstantData {
-                    width: size.width,
-                    height: size.height,
-                    pad_1: 0,
-                    pad_2: 0,
+                    size: Vec2::new(size.width as f32, size.height as f32),
                 }),
             );
 
