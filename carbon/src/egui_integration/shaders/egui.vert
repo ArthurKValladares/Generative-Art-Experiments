@@ -12,21 +12,16 @@ layout( push_constant ) uniform constants
 	vec2 screen_size;
 } PushConstants;
 
-// 0-1 linear  from  0-255 sRGB
-vec3 linear_from_srgb(vec3 srgb) {
-    bvec3 cutoff = lessThan(srgb, vec3(10.31475));
-    vec3 lower = srgb / vec3(3294.6);
-    vec3 higher = pow((srgb + vec3(14.025)) / vec3(269.025), vec3(2.4));
-    return mix(higher, lower, vec3(cutoff));
-}
-
-vec4 linear_from_srgba(vec4 srgba) {
-   return vec4(linear_from_srgb(srgba.rgb), srgba.a / 255.0);
+vec3 srgb_to_linear(vec3 srgb) {
+    bvec3 cutoff = lessThan(srgb, vec3(0.04045));
+    vec3 lower = srgb / vec3(12.92);
+    vec3 higher = pow((srgb + vec3(0.055)) / vec3(1.055), vec3(2.4));
+    return mix(higher, lower, cutoff);
 }
 
 void main() {
     o_uv = i_uv;
-    o_color = linear_from_srgba(i_color);
+    o_color = vec4(srgb_to_linear(i_color.rgb), i_color.a);
     
     gl_Position = vec4(
         2.0 * i_pos.x / PushConstants.screen_size.x - 1.0,

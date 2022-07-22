@@ -21,5 +21,5 @@ layout( push_constant ) uniform constants
 
 
 void main() {
-    uFragColor = texture(samplerColor[PushConstants.texture_index], i_uv) * i_color;
+    uFragColor = texture(samplerColor[PushConstants.texture_index], i_uv);
 }
