@@ -227,7 +227,7 @@ impl Painter {
             device.bind_index_buffer(context, &index_buffer);
             self.egui_pipeline
                 .bind_descriptor_set(device, context, &self.egui_descriptor_set);
-            device.draw_indexed(context, 0, indices.len() as u32);
+            device.draw_indexed(context, indices.len() as u32, 0, 0);
         }
         self.egui_render_pass.end(device, context);
 
@@ -276,7 +276,6 @@ impl Painter {
                 self.texture_map.insert(*id, image);
             }
             ImageData::Font(font_data) => {
-                println!("FONT: {:?}", id);
                 let (image, buffer) = Image::from_data_and_dims(
                     &device,
                     &context,
