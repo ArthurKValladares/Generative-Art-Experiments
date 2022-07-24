@@ -115,7 +115,8 @@ fn main() {
         &device,
         &swapchain,
         RenderPassAttachment::ColorClear,
-        RenderPassAttachment::DepthClear,
+        Some(RenderPassAttachment::DepthClear),
+        None,
         &[
             ClearValue::Color(Vec4::new(1.0, 0.0, 1.0, 0.0)),
             ClearValue::Depth {

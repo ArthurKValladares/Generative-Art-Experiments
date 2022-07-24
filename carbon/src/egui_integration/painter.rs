@@ -40,14 +40,16 @@ impl Painter {
             &device,
             &swapchain,
             RenderPassAttachment::ColorLoad,
-            RenderPassAttachment::DepthLoad,
-            &[
-                ClearValue::Color(Vec4::new(1.0, 0.0, 1.0, 0.0)),
-                ClearValue::Depth {
-                    depth: 1.0,
-                    stencil: 0,
-                },
-            ],
+            None,
+            Some(vec![vk::SubpassDependency::builder()
+                .src_subpass(vk::SUBPASS_EXTERNAL)
+                .dst_subpass(0)
+                .src_access_mask(vk::AccessFlags::COLOR_ATTACHMENT_WRITE)
+                .dst_access_mask(vk::AccessFlags::COLOR_ATTACHMENT_WRITE)
+                .src_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
+                .dst_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
+                .build()]),
+            &[ClearValue::Color(Vec4::new(1.0, 0.0, 1.0, 0.0))],
         )
         .expect("Could not create RenderPass");
 
