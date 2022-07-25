@@ -206,6 +206,11 @@ impl Painter {
         let vertices = &mesh.vertices;
         let indices = &mesh.indices;
 
+        let vertex_buffer = &self.vertex_buffers[present_index as usize];
+        let index_buffer = &self.index_buffers[present_index as usize];
+
+        // TODO: Write vertex and index data into buffer
+
         let image = self
             .texture_map
             .get(&mesh.texture_id)
@@ -230,8 +235,8 @@ impl Painter {
             );
 
             self.egui_pipeline.bind(device, context);
-            device.bind_vertex_buffers(context, &[&self.vertex_buffers[present_index as usize]]);
-            device.bind_index_buffer(context, &self.index_buffers[present_index as usize]);
+            device.bind_vertex_buffers(context, &[vertex_buffer]);
+            device.bind_index_buffer(context, index_buffer);
             self.egui_pipeline
                 .bind_descriptor_set(device, context, &self.egui_descriptor_set);
             device.draw_indexed(context, indices.len() as u32, 0, 0);
