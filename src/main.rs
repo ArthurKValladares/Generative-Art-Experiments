@@ -246,7 +246,8 @@ fn main() {
     let rendering_complete_semaphore = Semaphore::new(&device).expect("Could not create semaphore");
 
     // Egui
-    let mut egui = EguiIntegration::new(&window, &device, &swapchain);
+    let mut egui = EguiIntegration::new(&window, &device, &swapchain)
+        .expect("Could not create egui integration");
     let mut name = String::from("Arthur");
     let mut age = 27;
 

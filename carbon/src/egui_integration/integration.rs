@@ -1,4 +1,5 @@
 use super::Painter;
+use anyhow::Result;
 use bytes::Bytes;
 use easy_ash::{Context, Device, Fence, Image, Swapchain};
 use egui::{
@@ -14,16 +15,16 @@ pub struct EguiIntegration {
 }
 
 impl EguiIntegration {
-    pub fn new(window: &Window, device: &Device, swapchain: &Swapchain) -> Self {
+    pub fn new(window: &Window, device: &Device, swapchain: &Swapchain) -> Result<Self> {
         let max_texture_side = device.properties.limits.max_image_dimension2_d as usize;
         let egui_context = egui::Context::default();
         let egui_winit = egui_winit::State::new(max_texture_side, window);
-        let painter = Painter::new(device, swapchain);
-        Self {
+        let painter = Painter::new(device, swapchain)?;
+        Ok(Self {
             egui_context,
             egui_winit,
             painter,
-        }
+        })
     }
 
     fn gather_input(&mut self, window: &Window) -> RawInput {

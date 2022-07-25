@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use crate::vertex::Vertex;
+use anyhow::Result;
 use easy_ash::{
     ash::vk, new_descriptor_image_info, BindingDesc, Buffer, BufferType, ClearValue, Context,
     DescriptorBufferInfo, DescriptorInfo, DescriptorPool, DescriptorSet, DescriptorType, Device,
@@ -13,7 +12,11 @@ use egui::{
     ClippedPrimitive, FullOutput, ImageData, Mesh, Rect, TextureId, TexturesDelta,
 };
 use math::vec::{Vec2, Vec4};
+use std::collections::HashMap;
 use winit::window::Window;
+
+static VERTEX_BUFFER_SIZE: u64 = 1024 * 1024 * 4;
+static INDEX_BUFFER_SIZE: u64 = 1024 * 1024 * 2;
 
 #[repr(C)]
 #[derive(Clone, Debug, Copy)]
@@ -30,12 +33,12 @@ pub struct Painter {
     sampler: Sampler,
     texture_map: HashMap<TextureId, Image>,
     // TODO: Better way to do this? Better way to handle these transient buffers in general
-    vertex_buffer: Option<Buffer>,
-    index_buffer: Option<Buffer>,
+    vertex_buffers: Vec<Buffer>,
+    index_buffers: Vec<Buffer>,
 }
 
 impl Painter {
-    pub fn new(device: &Device, swapchain: &Swapchain) -> Self {
+    pub fn new(device: &Device, swapchain: &Swapchain) -> Result<Self> {
         let egui_render_pass = RenderPass::new(
             &device,
             &swapchain,
@@ -129,17 +132,31 @@ impl Painter {
         )
         .expect("Could not create graphics pipeline");
 
-        Self {
+        let (vertex_buffers, index_buffers) = {
+            let len = egui_render_pass.framebuffers.len();
+            let mut vertex_buffers = Vec::with_capacity(len);
+            let mut index_buffers = Vec::with_capacity(len);
+            for _ in (0..) {
+                let vertex_buffer =
+                    Buffer::with_size(device, VERTEX_BUFFER_SIZE, BufferType::Vertex)?;
+                vertex_buffers.push(vertex_buffer);
+                let index_buffer = Buffer::with_size(device, INDEX_BUFFER_SIZE, BufferType::Index)?;
+                index_buffers.push(index_buffer);
+            }
+            (vertex_buffers, index_buffers)
+        };
+
+        Ok(Self {
             egui_render_pass,
             egui_pipeline,
             egui_descriptor_pool,
             egui_descriptor_set,
             egui_push_constant,
             sampler,
-            vertex_buffer: None,
-            index_buffer: None,
+            vertex_buffers,
+            index_buffers,
             texture_map: Default::default(),
-        }
+        })
     }
 
     pub fn paint(
@@ -185,21 +202,9 @@ impl Painter {
         clip_rect: &Rect,
         mesh: &Mesh,
     ) {
-        if let Some(vertex_buffer) = &self.vertex_buffer {
-            unsafe { vertex_buffer.clean(device) };
-        }
-        if let Some(index_buffer) = &self.index_buffer {
-            unsafe { index_buffer.clean(device) };
-        }
-
         // TODO: ideally we want an egui shader that can take this vertex output as is
         let vertices = &mesh.vertices;
         let indices = &mesh.indices;
-
-        let vertex_buffer = Buffer::from_data(&device, BufferType::Vertex, &vertices)
-            .expect("Could not create vertex buffer");
-        let index_buffer = Buffer::from_data(&device, BufferType::Index, &indices)
-            .expect("Could not create index buffer");
 
         let image = self
             .texture_map
@@ -225,16 +230,14 @@ impl Painter {
             );
 
             self.egui_pipeline.bind(device, context);
-            device.bind_vertex_buffers(context, &[&vertex_buffer]);
-            device.bind_index_buffer(context, &index_buffer);
+            // TODO: Correctly bind vertex and index buffers
+            //device.bind_vertex_buffers(context, &[&vertex_buffer]);
+            //device.bind_index_buffer(context, &index_buffer);
             self.egui_pipeline
                 .bind_descriptor_set(device, context, &self.egui_descriptor_set);
             device.draw_indexed(context, indices.len() as u32, 0, 0);
         }
         self.egui_render_pass.end(device, context);
-
-        self.vertex_buffer = Some(vertex_buffer);
-        self.index_buffer = Some(index_buffer);
     }
 
     pub fn set_textures(
@@ -301,11 +304,11 @@ impl Painter {
 
     pub fn clean_buffers(&mut self, device: &Device) {
         unsafe {
-            if let Some(vertex_buffer) = &self.vertex_buffer {
-                vertex_buffer.clean(&device);
+            for buffer in &mut self.vertex_buffers {
+                buffer.clean(&device);
             }
-            if let Some(index_buffer) = &self.index_buffer {
-                index_buffer.clean(&device);
+            for buffer in &mut self.index_buffers {
+                buffer.clean(&device);
             }
         }
     }
