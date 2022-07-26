@@ -136,7 +136,7 @@ impl Painter {
             let len = egui_render_pass.framebuffers.len();
             let mut vertex_buffers = Vec::with_capacity(len);
             let mut index_buffers = Vec::with_capacity(len);
-            for _ in (0..) {
+            for _ in (0..len) {
                 let vertex_buffer =
                     Buffer::with_size(device, VERTEX_BUFFER_SIZE, BufferType::Vertex)?;
                 vertex_buffers.push(vertex_buffer);
