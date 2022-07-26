@@ -252,15 +252,14 @@ impl Painter {
             .texture_map
             .get(&mesh.texture_id)
             .expect("TextureId not in map");
-        self.egui_descriptor_set
-            .bind(&[DescriptorInfo::CombinedImageSampler(vec![
-                new_descriptor_image_info(&image, &self.sampler),
-            ])]);
-        self.egui_descriptor_set.update(&device);
 
         let size = window.inner_size();
         self.egui_render_pass.begin(device, context, present_index);
         {
+            self.egui_pipeline.bind(device, context);
+            device.bind_vertex_buffers(context, &[vertex_buffer]);
+            device.bind_index_buffer(context, index_buffer);
+
             device.push_constant(
                 context,
                 &self.egui_pipeline,
@@ -270,11 +269,16 @@ impl Painter {
                 }),
             );
 
-            self.egui_pipeline.bind(device, context);
-            device.bind_vertex_buffers(context, &[vertex_buffer]);
-            device.bind_index_buffer(context, index_buffer);
             self.egui_pipeline
                 .bind_descriptor_set(device, context, &self.egui_descriptor_set);
+
+            // TODO: This is still a problem
+            self.egui_descriptor_set
+                .bind(&[DescriptorInfo::CombinedImageSampler(vec![
+                    new_descriptor_image_info(&image, &self.sampler),
+                ])]);
+            self.egui_descriptor_set.update(&device);
+
             device.draw_indexed(context, indices.len() as u32, *index_base, *vertex_base);
             *vertex_base += vertices.len() as i32;
             *index_base += indices.len() as u32;
