@@ -3,9 +3,9 @@ use anyhow::Result;
 use easy_ash::{
     ash::vk, new_descriptor_image_info, BindingDesc, Buffer, BufferType, ClearValue, Context,
     DescriptorBufferInfo, DescriptorInfo, DescriptorPool, DescriptorSet, DescriptorType, Device,
-    Fence, GraphicsPipeline, GraphicsProgram, Image, PushConstant, RenderPass,
-    RenderPassAttachment, Sampler, SamplerFilter, SamplerWrapMode, Shader, ShaderStage, Swapchain,
-    VertexInputData,
+    Fence, GraphicsPipeline, GraphicsProgram, Image, MemoryMappablePointer, PushConstant,
+    RenderPass, RenderPassAttachment, Sampler, SamplerFilter, SamplerWrapMode, Shader, ShaderStage,
+    Swapchain, VertexInputData,
 };
 use egui::{
     epaint::{ImageDelta, Primitive},
@@ -168,6 +168,12 @@ impl Painter {
         pixels_per_point: f32,
         clipped_primitives: &[ClippedPrimitive],
     ) {
+        let mut vertex_buffer_ptr = self.vertex_buffers[present_index as usize].ptr().unwrap();
+        let mut index_buffer_ptr = self.index_buffers[present_index as usize].ptr().unwrap();
+
+        let mut vertex_base = 0;
+        let mut index_base = 0;
+
         for egui::ClippedPrimitive {
             clip_rect,
             primitive,
@@ -183,6 +189,10 @@ impl Painter {
                         pixels_per_point,
                         clip_rect,
                         mesh,
+                        &mut vertex_buffer_ptr,
+                        &mut vertex_base,
+                        &mut index_buffer_ptr,
+                        &mut index_base,
                     );
                 }
                 Primitive::Callback(_) => {
@@ -201,10 +211,37 @@ impl Painter {
         pixels_per_point: f32,
         clip_rect: &Rect,
         mesh: &Mesh,
+        vertex_buffer_ptr: &mut MemoryMappablePointer,
+        vertex_base: &mut i32,
+        index_buffer_ptr: &mut MemoryMappablePointer,
+        index_base: &mut u32,
     ) {
         // TODO: ideally we want an egui shader that can take this vertex output as is
         let vertices = &mesh.vertices;
         let indices = &mesh.indices;
+
+        let vertex_copy_size = std::mem::size_of_val(vertices);
+        let index_copy_size = std::mem::size_of_val(indices);
+
+        vertex_buffer_ptr.copy_from(vertices, vertex_copy_size);
+        index_buffer_ptr.copy_from(indices, index_copy_size);
+
+        let vertex_buffer_ptr_next = vertex_buffer_ptr.add(vertex_copy_size);
+        let index_buffer_ptr_next = index_buffer_ptr.add(index_copy_size);
+
+        if vertex_buffer_ptr_next
+            >= self.vertex_buffers[present_index as usize]
+                .end_ptr()
+                .unwrap()
+            || index_buffer_ptr_next
+                >= self.index_buffers[present_index as usize]
+                    .end_ptr()
+                    .unwrap()
+        {
+            panic!("egui out of memory");
+        }
+        *vertex_buffer_ptr = vertex_buffer_ptr_next;
+        *index_buffer_ptr = index_buffer_ptr_next;
 
         let vertex_buffer = &self.vertex_buffers[present_index as usize];
         let index_buffer = &self.index_buffers[present_index as usize];
@@ -221,7 +258,6 @@ impl Painter {
             ])]);
         self.egui_descriptor_set.update(&device);
 
-        // Dummy draw logic, no texture (yet)
         let size = window.inner_size();
         self.egui_render_pass.begin(device, context, present_index);
         {
@@ -239,7 +275,9 @@ impl Painter {
             device.bind_index_buffer(context, index_buffer);
             self.egui_pipeline
                 .bind_descriptor_set(device, context, &self.egui_descriptor_set);
-            device.draw_indexed(context, indices.len() as u32, 0, 0);
+            device.draw_indexed(context, indices.len() as u32, *index_base, *vertex_base);
+            *vertex_base += vertices.len() as i32;
+            *index_base += indices.len() as u32;
         }
         self.egui_render_pass.end(device, context);
     }
