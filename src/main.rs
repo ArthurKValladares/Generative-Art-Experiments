@@ -14,10 +14,10 @@ use easy_ash::{
     },
     new_descriptor_image_info, AccessMask, ApiVersion, ApplicationInfo, BindingDesc, Buffer,
     BufferType, ClearValue, Context, DescriptorBufferInfo, DescriptorInfo, DescriptorPool,
-    DescriptorSet, DescriptorType, Device, Entry, Fence, GraphicsPipeline, GraphicsProgram, Image,
-    ImageLayout, ImageMemoryBarrier, InstanceInfo, PipelineStages, PushConstant, RenderPass,
-    RenderPassAttachment, Sampler, SamplerFilter, SamplerWrapMode, Semaphore, Shader, ShaderStage,
-    Surface, Swapchain,
+    DescriptorSet, DescriptorSetLayout, DescriptorType, Device, Entry, Fence, GraphicsPipeline,
+    GraphicsProgram, Image, ImageLayout, ImageMemoryBarrier, InstanceInfo, PipelineStages,
+    PushConstant, RenderPass, RenderPassAttachment, Sampler, SamplerFilter, SamplerWrapMode,
+    Semaphore, Shader, ShaderStage, Surface, Swapchain,
 };
 use winit::{
     dpi::LogicalSize,
@@ -199,24 +199,33 @@ fn main() {
         });
         infos
     };
-    let bind_desc = vec![
-        BindingDesc::new(DescriptorType::StorageBuffer, 1, ShaderStage::Vertex),
-        BindingDesc::new(DescriptorType::UniformBuffer, 1, ShaderStage::Vertex),
-        BindingDesc::new(
-            DescriptorType::CombinedImageSampler,
-            texture_array_count,
-            ShaderStage::Fragment,
-        ),
-    ];
-
-    let mut global_descriptor_set = DescriptorSet::new(&device, &descriptor_pool, &bind_desc)
-        .expect("Could not create descriptor set");
-    global_descriptor_set.bind(&[
-        DescriptorInfo::StorageBuffer(DescriptorBufferInfo::new(&vertex_buffer, None, None)),
-        DescriptorInfo::UniformBuffer(DescriptorBufferInfo::new(&camera_buffer, None, None)),
-        DescriptorInfo::CombinedImageSampler(infos),
-    ]);
-    global_descriptor_set.update(&device);
+    let global_set_layout = DescriptorSetLayout::new(
+        &device,
+        &[
+            BindingDesc::new(DescriptorType::StorageBuffer, 1, ShaderStage::Vertex),
+            BindingDesc::new(DescriptorType::UniformBuffer, 1, ShaderStage::Vertex),
+            BindingDesc::new(
+                DescriptorType::CombinedImageSampler,
+                texture_array_count,
+                ShaderStage::Fragment,
+            ),
+        ],
+    )
+    .expect("Could not create descriptor set layout");
+    let mut global_descriptor_set = DescriptorSet::new(
+        &device,
+        &descriptor_pool,
+        std::slice::from_ref(&global_set_layout),
+    )
+    .expect("Could not create descriptor set");
+    global_descriptor_set.update(
+        &device,
+        &[
+            DescriptorInfo::StorageBuffer(DescriptorBufferInfo::new(&vertex_buffer, None, None)),
+            DescriptorInfo::UniformBuffer(DescriptorBufferInfo::new(&camera_buffer, None, None)),
+            DescriptorInfo::CombinedImageSampler(infos),
+        ],
+    );
 
     // TODO: handle offset automatically in new abstraction
     let camera_push_constant = PushConstant {
@@ -236,7 +245,7 @@ fn main() {
         &render_pass,
         &graphics_program,
         None,
-        &[&global_descriptor_set],
+        std::slice::from_ref(&global_set_layout),
         &[&camera_push_constant, &material_push_constant],
         true,
     )
@@ -279,7 +288,7 @@ fn main() {
                         rendering_complete_semaphore.clean(&device);
                         draw_commands_reuse_fence.clean(&device);
                         setup_commands_reuse_fence.clean(&device);
-                        global_descriptor_set.clean(&device);
+                        //global_descriptor_set.clean(&device);
                         descriptor_pool.clean(&device);
                         swapchain.clean(&device);
                         sampler.clean(&device);

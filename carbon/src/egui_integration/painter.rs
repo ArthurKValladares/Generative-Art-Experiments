@@ -2,10 +2,10 @@ use crate::vertex::Vertex;
 use anyhow::Result;
 use easy_ash::{
     ash::vk, new_descriptor_image_info, BindingDesc, Buffer, BufferType, ClearValue, Context,
-    DescriptorBufferInfo, DescriptorInfo, DescriptorPool, DescriptorSet, DescriptorType, Device,
-    Fence, GraphicsPipeline, GraphicsProgram, Image, MemoryMappablePointer, PushConstant,
-    RenderPass, RenderPassAttachment, Sampler, SamplerFilter, SamplerWrapMode, Shader, ShaderStage,
-    Swapchain, VertexInputData,
+    DescriptorBufferInfo, DescriptorInfo, DescriptorPool, DescriptorSet, DescriptorSetLayout,
+    DescriptorType, Device, Fence, GraphicsPipeline, GraphicsProgram, Image, MemoryMappablePointer,
+    PushConstant, RenderPass, RenderPassAttachment, Sampler, SamplerFilter, SamplerWrapMode,
+    Shader, ShaderStage, Swapchain, VertexInputData,
 };
 use egui::{
     epaint::{ImageDelta, Primitive},
@@ -28,6 +28,7 @@ pub struct Painter {
     egui_render_pass: RenderPass,
     egui_pipeline: GraphicsPipeline,
     egui_descriptor_pool: DescriptorPool,
+    egui_descriptor_set_layouts: Vec<DescriptorSetLayout>,
     egui_descriptor_set: DescriptorSet,
     egui_push_constant: PushConstant,
     sampler: Sampler,
@@ -61,11 +62,6 @@ impl Painter {
 
         let egui_descriptor_pool =
             DescriptorPool::new(&device).expect("Could not create descriptor pool");
-        let bind_desc = vec![BindingDesc::new(
-            DescriptorType::CombinedImageSampler,
-            1,
-            ShaderStage::Fragment,
-        )];
 
         let egui_push_constant = PushConstant {
             stage: ShaderStage::Vertex,
@@ -73,8 +69,28 @@ impl Painter {
             size: std::mem::size_of::<EguiPushConstantData>() as u32,
         };
 
-        let egui_descriptor_set = DescriptorSet::new(&device, &egui_descriptor_pool, &bind_desc)
-            .expect("Could not create descriptor set");
+        let egui_descriptor_set_layouts = {
+            let len = egui_render_pass.framebuffers.len();
+
+            let mut egui_descriptor_set_layouts = Vec::with_capacity(len);
+
+            for _ in (0..len) {
+                let descritor_set_layout = DescriptorSetLayout::new(
+                    device,
+                    &[BindingDesc::new(
+                        DescriptorType::CombinedImageSampler,
+                        1,
+                        ShaderStage::Fragment,
+                    )],
+                )?;
+                egui_descriptor_set_layouts.push(descritor_set_layout);
+            }
+            egui_descriptor_set_layouts
+        };
+
+        let egui_descriptor_set =
+            DescriptorSet::new(&device, &egui_descriptor_pool, &egui_descriptor_set_layouts)
+                .expect("Could not create descriptor set");
 
         let egui_program = GraphicsProgram::new(
             Shader::new(
@@ -126,7 +142,7 @@ impl Painter {
                         .build(),
                 ],
             }),
-            &[&egui_descriptor_set],
+            &egui_descriptor_set_layouts,
             &[&egui_push_constant],
             false,
         )
@@ -151,6 +167,7 @@ impl Painter {
             egui_pipeline,
             egui_descriptor_pool,
             egui_descriptor_set,
+            egui_descriptor_set_layouts,
             egui_push_constant,
             sampler,
             vertex_buffers,
@@ -273,11 +290,12 @@ impl Painter {
                 .bind_descriptor_set(device, context, &self.egui_descriptor_set);
 
             // TODO: This is still a problem
-            self.egui_descriptor_set
-                .bind(&[DescriptorInfo::CombinedImageSampler(vec![
+            self.egui_descriptor_set.update(
+                device,
+                &[DescriptorInfo::CombinedImageSampler(vec![
                     new_descriptor_image_info(&image, &self.sampler),
-                ])]);
-            self.egui_descriptor_set.update(&device);
+                ])],
+            );
 
             device.draw_indexed(context, indices.len() as u32, *index_base, *vertex_base);
             *vertex_base += vertices.len() as i32;
