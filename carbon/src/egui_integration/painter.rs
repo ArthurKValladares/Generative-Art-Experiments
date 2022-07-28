@@ -264,8 +264,6 @@ impl Painter {
         let vertex_buffer = &self.vertex_buffers[present_index as usize];
         let index_buffer = &self.index_buffers[present_index as usize];
 
-        // TODO: Write vertex and index data into buffer
-
         let image = self
             .texture_map
             .get(&mesh.texture_id)
@@ -289,14 +287,6 @@ impl Painter {
 
             self.egui_pipeline
                 .bind_descriptor_set(device, context, &self.egui_descriptor_set);
-
-            // TODO: This is still a problem
-            self.egui_descriptor_set.update(
-                device,
-                &[DescriptorInfo::CombinedImageSampler(vec![
-                    new_descriptor_image_info(&image, &self.sampler),
-                ])],
-            );
 
             device.draw_indexed(context, indices.len() as u32, *index_base, *vertex_base);
             *vertex_base += vertices.len() as i32;
@@ -343,6 +333,12 @@ impl Painter {
                     false,
                 )
                 .expect("Could not crate image");
+                self.egui_descriptor_set.update(
+                    device,
+                    &[DescriptorInfo::CombinedImageSampler(vec![
+                        new_descriptor_image_info(&image, &self.sampler),
+                    ])],
+                );
                 self.texture_map.insert(*id, image);
             }
             ImageData::Font(font_data) => {
@@ -356,6 +352,12 @@ impl Painter {
                     false,
                 )
                 .expect("Could not crate image");
+                self.egui_descriptor_set.update(
+                    device,
+                    &[DescriptorInfo::CombinedImageSampler(vec![
+                        new_descriptor_image_info(&image, &self.sampler),
+                    ])],
+                );
                 self.texture_map.insert(*id, image);
             }
         }
