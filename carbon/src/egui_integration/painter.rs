@@ -63,18 +63,12 @@ impl Painter {
         let egui_descriptor_pool =
             DescriptorPool::new(&device).expect("Could not create descriptor pool");
 
-        let egui_push_constant = PushConstant {
-            stage: ShaderStage::Vertex,
-            offset: 0,
-            size: std::mem::size_of::<EguiPushConstantData>() as u32,
-        };
-
         let egui_descriptor_set_layouts = {
             let len = egui_render_pass.framebuffers.len();
 
             let mut egui_descriptor_set_layouts = Vec::with_capacity(len);
 
-            for _ in (0..len) {
+            for _ in 0..len {
                 let descritor_set_layout = DescriptorSetLayout::new(
                     device,
                     &[BindingDesc::new(
@@ -104,6 +98,13 @@ impl Painter {
             )
             .expect("Could not create fragment shader"),
         );
+
+        let egui_push_constant = PushConstant {
+            stage: ShaderStage::Vertex,
+            offset: 0,
+            size: std::mem::size_of::<EguiPushConstantData>() as u32,
+        };
+
         let egui_pipeline = GraphicsPipeline::new(
             &device,
             &swapchain,
@@ -152,7 +153,7 @@ impl Painter {
             let len = egui_render_pass.framebuffers.len();
             let mut vertex_buffers = Vec::with_capacity(len);
             let mut index_buffers = Vec::with_capacity(len);
-            for _ in (0..len) {
+            for _ in 0..len {
                 let vertex_buffer =
                     Buffer::with_size(device, VERTEX_BUFFER_SIZE, BufferType::Vertex)?;
                 vertex_buffers.push(vertex_buffer);
