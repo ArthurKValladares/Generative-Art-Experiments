@@ -379,10 +379,12 @@ fn main() {
                             graphics_pipeline.bind(device, context);
                             device.set_viewport_and_scissor(context, &swapchain);
                             device.bind_index_buffer(context, &index_buffer);
+                            // TODO: the index stuff here could be better, or better in general
                             graphics_pipeline.bind_descriptor_set(
                                 device,
                                 context,
                                 &global_descriptor_set,
+                                0,
                             );
                             for mesh_draw in &compiled_scene.mesh_draws {
                                 {

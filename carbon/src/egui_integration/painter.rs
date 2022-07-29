@@ -282,13 +282,14 @@ impl Painter {
         *vertex_buffer_ptr = vertex_buffer_ptr_next;
         *index_buffer_ptr = index_buffer_ptr_next;
 
-        let image = self
-            .texture_map
-            .get(&mesh.texture_id)
-            .expect("TextureId not in map");
-        // TODO: should only bind the descriptor set for this image
-        self.egui_pipeline
-            .bind_descriptor_set(device, context, &self.egui_descriptor_set);
+        // TODO: not sure how to handle texture quite yet
+        let texture_id = mesh.texture_id;
+        self.egui_pipeline.bind_descriptor_set(
+            device,
+            context,
+            &self.egui_descriptor_set,
+            present_index as usize,
+        );
 
         device.draw_indexed(context, indices.len() as u32, *index_base, *vertex_base);
         *vertex_base += vertices.len() as i32;
