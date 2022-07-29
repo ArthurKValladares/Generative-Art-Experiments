@@ -26,6 +26,8 @@ use winit::{
     window::WindowBuilder,
 };
 
+static MAX_FRAMES_IN_FLIGHT: usize = 2;
+
 #[repr(transparent)]
 #[derive(Clone, Debug, Copy)]
 struct CameraPushConstantData {
@@ -80,8 +82,25 @@ fn main() {
     let setup_context = Context::new(&device).expect("Could not create setup context");
     let draw_context = Context::new(&device).expect("Could not create draw context");
 
-    let draw_commands_reuse_fence = Fence::new(&device).expect("Could not create Fence");
+    // Sync objects
     let setup_commands_reuse_fence = Fence::new(&device).expect("Could not create Fence");
+    let (fences, image_available_semaphores, render_finished_semaphores) = {
+        let mut fences = vec![];
+        let mut image_available_semaphores = vec![];
+        let mut render_finished_semaphores = vec![];
+        for _ in 0..MAX_FRAMES_IN_FLIGHT {
+            fences.push(Fence::new(&device).expect("Could not create Fence"));
+            image_available_semaphores
+                .push(Semaphore::new(&device).expect("Could not create semaphore"));
+            render_finished_semaphores
+                .push(Semaphore::new(&device).expect("Could not create semaphore"));
+        }
+        (
+            fences,
+            image_available_semaphores,
+            render_finished_semaphores,
+        )
+    };
 
     swapchain
         .transition_depth_image(&device, &setup_context, &setup_commands_reuse_fence)
@@ -148,16 +167,26 @@ fn main() {
             Image::from_data_and_dims(
                 &device,
                 &setup_context,
-                &setup_commands_reuse_fence,
                 image_data.width,
                 image_data.height,
                 &image_data.bytes,
-                true,
             )
             .expect("Could not crate image")
         })
         .collect::<Vec<_>>();
-
+    for (image, buffer) in &images_data {
+        // TODO: This can probably be much better, Image stuff in general
+        setup_context.record(
+            &device,
+            &[],
+            &[],
+            &setup_commands_reuse_fence,
+            &[],
+            |device, context| {
+                image.create_commands(buffer, device, context);
+            },
+        );
+    }
     let index_buffer = Buffer::from_data(&device, BufferType::Index, &compiled_scene.indices)
         .expect("Could not create index buffer");
 
@@ -251,9 +280,6 @@ fn main() {
     )
     .expect("Could not create graphics pipeline");
 
-    let present_complete_semaphore = Semaphore::new(&device).expect("Could not create semaphore");
-    let rendering_complete_semaphore = Semaphore::new(&device).expect("Could not create semaphore");
-
     // Egui
     let mut egui = EguiIntegration::new(&window, &device, &swapchain)
         .expect("Could not create egui integration");
@@ -263,6 +289,7 @@ fn main() {
     // TODO: Cleanup a bunch of this stuff
     let mut keyboard_state = KeyboardState::default();
     let mut mouse_state = MouseState::default();
+    let mut current_frame: usize = 0;
 
     event_loop.run(move |event, _, control_flow| {
         let mut frame_context =
@@ -284,9 +311,15 @@ fn main() {
                         vertex_buffer.clean(&device);
                         camera_buffer.clean(&device);
                         render_pass.clean(&device);
-                        present_complete_semaphore.clean(&device);
-                        rendering_complete_semaphore.clean(&device);
-                        draw_commands_reuse_fence.clean(&device);
+                        for semaphore in &image_available_semaphores {
+                            semaphore.clean(&device);
+                        }
+                        for semaphore in &render_finished_semaphores {
+                            semaphore.clean(&device);
+                        }
+                        for fence in &fences {
+                            fence.clean(&device);
+                        }
                         setup_commands_reuse_fence.clean(&device);
                         //global_descriptor_set.clean(&device);
                         descriptor_pool.clean(&device);
@@ -331,15 +364,15 @@ fn main() {
             },
             Event::RedrawRequested(_window_id) => {
                 let present_index = swapchain
-                    .acquire_next_image_index(&present_complete_semaphore)
+                    .acquire_next_image_index(&image_available_semaphores[current_frame])
                     .expect("Could not acquire present image");
 
                 draw_context
                     .record(
                         &device,
-                        &[present_complete_semaphore],
-                        &[rendering_complete_semaphore],
-                        &draw_commands_reuse_fence,
+                        &[image_available_semaphores[current_frame]],
+                        &[render_finished_semaphores[current_frame]],
+                        &fences[current_frame],
                         &[PipelineStages::ColorAttachmentOutput],
                         |device, context| {
                             render_pass.begin(device, context, present_index);
@@ -394,27 +427,20 @@ fn main() {
 
                             // Egui UI pass
                             //
-                            egui.run(
-                                &device,
-                                context,
-                                &setup_commands_reuse_fence,
-                                present_index,
-                                &window,
-                                |context| {
-                                    egui::SidePanel::left("Test Panel").show(context, |ui| {
-                                        ui.heading("My egui Application");
-                                        ui.horizontal(|ui| {
-                                            ui.label("Your name: ");
-                                            ui.text_edit_singleline(&mut name);
-                                        });
-                                        ui.add(egui::Slider::new(&mut age, 0..=120).text("age"));
-                                        if ui.button("Click each year").clicked() {
-                                            age += 1;
-                                        }
-                                        ui.label(format!("Hello '{}', age {}", name, age));
+                            egui.run(&device, context, present_index, &window, |context| {
+                                egui::SidePanel::left("Test Panel").show(context, |ui| {
+                                    ui.heading("My egui Application");
+                                    ui.horizontal(|ui| {
+                                        ui.label("Your name: ");
+                                        ui.text_edit_singleline(&mut name);
                                     });
-                                },
-                            );
+                                    ui.add(egui::Slider::new(&mut age, 0..=120).text("age"));
+                                    if ui.button("Click each year").clicked() {
+                                        age += 1;
+                                    }
+                                    ui.label(format!("Hello '{}', age {}", name, age));
+                                });
+                            });
                             //
                             //
                         },
@@ -422,8 +448,14 @@ fn main() {
                     .expect("Could not record draw context");
 
                 swapchain
-                    .present(&device, &[&rendering_complete_semaphore], &[present_index])
+                    .present(
+                        &device,
+                        &[&render_finished_semaphores[current_frame]],
+                        &[present_index],
+                    )
                     .expect("Could not present to swapchain");
+
+                current_frame = (current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
             }
             _ => {}
         }

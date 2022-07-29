@@ -31,15 +31,8 @@ impl EguiIntegration {
         self.egui_winit.take_egui_input(window)
     }
 
-    fn set_textures(
-        &mut self,
-        device: &Device,
-        context: &Context,
-        fence: &Fence,
-        textures_delta: &TexturesDelta,
-    ) {
-        self.painter
-            .set_textures(device, context, fence, textures_delta);
+    fn set_textures(&mut self, device: &Device, context: &Context, textures_delta: &TexturesDelta) {
+        self.painter.set_textures(device, context, textures_delta);
     }
 
     fn free_textures(&mut self, _textures_delta: TexturesDelta) {}
@@ -48,11 +41,11 @@ impl EguiIntegration {
         &mut self,
         device: &Device,
         context: &Context,
-        fence: &Fence,
         present_index: u32,
         window: &Window,
         f: impl FnOnce(&egui::Context),
     ) {
+        self.egui_context.set_visuals(egui::Visuals::light());
         let raw_input = self.gather_input(window);
         let egui::FullOutput {
             platform_output,
@@ -66,7 +59,7 @@ impl EguiIntegration {
             .handle_platform_output(window, &self.egui_context, platform_output);
 
         // TODO? Make this a separate step
-        self.set_textures(device, context, fence, &textures_delta);
+        self.set_textures(device, context, &textures_delta);
         self.painter.paint(
             device,
             context,

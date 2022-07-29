@@ -3,7 +3,7 @@ use anyhow::Result;
 use easy_ash::{
     ash::vk, new_descriptor_image_info, BindingDesc, Buffer, BufferType, ClearValue, Context,
     DescriptorBufferInfo, DescriptorInfo, DescriptorPool, DescriptorSet, DescriptorSetLayout,
-    DescriptorType, Device, Fence, GraphicsPipeline, GraphicsProgram, Image, MemoryMappablePointer,
+    DescriptorType, Device, GraphicsPipeline, GraphicsProgram, Image, MemoryMappablePointer,
     PushConstant, RenderPass, RenderPassAttachment, Sampler, SamplerFilter, SamplerWrapMode,
     Shader, ShaderStage, Swapchain, VertexInputData,
 };
@@ -192,32 +192,53 @@ impl Painter {
         let mut vertex_base = 0;
         let mut index_base = 0;
 
-        for egui::ClippedPrimitive {
-            clip_rect,
-            primitive,
-        } in clipped_primitives
+        let vertex_buffer = &self.vertex_buffers[present_index as usize];
+        let index_buffer = &self.index_buffers[present_index as usize];
+
+        self.egui_render_pass.begin(device, context, present_index);
         {
-            match primitive {
-                Primitive::Mesh(mesh) => {
-                    self.paint_mesh(
-                        device,
-                        context,
-                        window,
-                        present_index,
-                        pixels_per_point,
-                        clip_rect,
-                        mesh,
-                        &mut vertex_buffer_ptr,
-                        &mut vertex_base,
-                        &mut index_buffer_ptr,
-                        &mut index_base,
-                    );
-                }
-                Primitive::Callback(_) => {
-                    todo!("Custom rendering callbacks are not implemented");
+            self.egui_pipeline.bind(device, context);
+            device.bind_vertex_buffers(context, &[vertex_buffer]);
+            device.bind_index_buffer(context, index_buffer);
+
+            let size = window.inner_size();
+            device.push_constant(
+                context,
+                &self.egui_pipeline,
+                &self.egui_push_constant,
+                easy_ash::as_u8_slice(&EguiPushConstantData {
+                    size: Vec2::new(size.width as f32, size.height as f32),
+                }),
+            );
+
+            for egui::ClippedPrimitive {
+                clip_rect,
+                primitive,
+            } in clipped_primitives
+            {
+                match primitive {
+                    Primitive::Mesh(mesh) => {
+                        self.paint_mesh(
+                            device,
+                            context,
+                            window,
+                            present_index,
+                            pixels_per_point,
+                            clip_rect,
+                            mesh,
+                            &mut vertex_buffer_ptr,
+                            &mut vertex_base,
+                            &mut index_buffer_ptr,
+                            &mut index_base,
+                        );
+                    }
+                    Primitive::Callback(_) => {
+                        todo!("Custom rendering callbacks are not implemented");
+                    }
                 }
             }
         }
+        self.egui_render_pass.end(device, context);
     }
 
     fn paint_mesh(
@@ -261,49 +282,27 @@ impl Painter {
         *vertex_buffer_ptr = vertex_buffer_ptr_next;
         *index_buffer_ptr = index_buffer_ptr_next;
 
-        let vertex_buffer = &self.vertex_buffers[present_index as usize];
-        let index_buffer = &self.index_buffers[present_index as usize];
-
         let image = self
             .texture_map
             .get(&mesh.texture_id)
             .expect("TextureId not in map");
+        // TODO: should only bind the descriptor set for this image
+        self.egui_pipeline
+            .bind_descriptor_set(device, context, &self.egui_descriptor_set);
 
-        let size = window.inner_size();
-        self.egui_render_pass.begin(device, context, present_index);
-        {
-            self.egui_pipeline.bind(device, context);
-            device.bind_vertex_buffers(context, &[vertex_buffer]);
-            device.bind_index_buffer(context, index_buffer);
-
-            device.push_constant(
-                context,
-                &self.egui_pipeline,
-                &self.egui_push_constant,
-                easy_ash::as_u8_slice(&EguiPushConstantData {
-                    size: Vec2::new(size.width as f32, size.height as f32),
-                }),
-            );
-
-            self.egui_pipeline
-                .bind_descriptor_set(device, context, &self.egui_descriptor_set);
-
-            device.draw_indexed(context, indices.len() as u32, *index_base, *vertex_base);
-            *vertex_base += vertices.len() as i32;
-            *index_base += indices.len() as u32;
-        }
-        self.egui_render_pass.end(device, context);
+        device.draw_indexed(context, indices.len() as u32, *index_base, *vertex_base);
+        *vertex_base += vertices.len() as i32;
+        *index_base += indices.len() as u32;
     }
 
     pub fn set_textures(
         &mut self,
         device: &Device,
         context: &Context,
-        fence: &Fence,
         textures_delta: &TexturesDelta,
     ) {
         for (id, delta) in &textures_delta.set {
-            self.set_image(device, context, fence, id, delta);
+            self.set_image(device, context, id, delta);
         }
     }
 
@@ -311,7 +310,6 @@ impl Painter {
         &mut self,
         device: &Device,
         context: &Context,
-        fence: &Fence,
         id: &TextureId,
         delta: &ImageDelta,
     ) {
@@ -326,13 +324,14 @@ impl Painter {
                 let (image, buffer) = Image::from_data_and_dims(
                     &device,
                     &context,
-                    &fence,
                     color_data.width() as u32,
                     color_data.height() as u32,
                     easy_ash::as_u8_slice(&color_data.pixels),
-                    false,
                 )
                 .expect("Could not crate image");
+
+                image.create_commands(&buffer, device, context);
+
                 self.egui_descriptor_set.update(
                     device,
                     &[DescriptorInfo::CombinedImageSampler(vec![
@@ -345,13 +344,14 @@ impl Painter {
                 let (image, buffer) = Image::from_data_and_dims(
                     &device,
                     &context,
-                    &fence,
                     font_data.width() as u32,
                     font_data.height() as u32,
                     easy_ash::as_u8_slice(&font_data.pixels),
-                    false,
                 )
                 .expect("Could not crate image");
+
+                image.create_commands(&buffer, device, context);
+
                 self.egui_descriptor_set.update(
                     device,
                     &[DescriptorInfo::CombinedImageSampler(vec![
