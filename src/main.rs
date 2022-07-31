@@ -102,10 +102,6 @@ fn main() {
         )
     };
 
-    swapchain
-        .transition_depth_image(&device, &setup_context, &setup_commands_reuse_fence)
-        .expect("could not transition depth image");
-
     setup_context
         .record(
             &device,
@@ -114,6 +110,10 @@ fn main() {
             &setup_commands_reuse_fence,
             &[],
             |device, _context| {
+                swapchain
+                    .transition_depth_image_commands(&device, &setup_context)
+                    .expect("could not transition depth image");
+
                 let layout_transition_barrier = ImageMemoryBarrier::new(
                     &swapchain.depth_image,
                     AccessMask::DepthStencil,
@@ -174,19 +174,20 @@ fn main() {
             .expect("Could not crate image")
         })
         .collect::<Vec<_>>();
-    for (image, buffer) in &images_data {
-        // TODO: This can probably be much better, Image stuff in general
-        setup_context.record(
-            &device,
-            &[],
-            &[],
-            &setup_commands_reuse_fence,
-            &[],
-            |device, context| {
+    // TODO: This can probably be much better, Image stuff in general
+    setup_context.record(
+        &device,
+        &[],
+        &[],
+        &setup_commands_reuse_fence,
+        &[],
+        |device, context| {
+            for (image, buffer) in &images_data {
                 image.create_commands(buffer, device, context);
-            },
-        );
-    }
+            }
+        },
+    );
+
     let index_buffer = Buffer::from_data(&device, BufferType::Index, &compiled_scene.indices)
         .expect("Could not create index buffer");
 
@@ -363,11 +364,7 @@ fn main() {
                 _ => {}
             },
             Event::RedrawRequested(_window_id) => {
-                let present_index = swapchain
-                    .acquire_next_image_index(&image_available_semaphores[current_frame])
-                    .expect("Could not acquire present image");
-
-                draw_context
+                let present_index = draw_context
                     .record(
                         &device,
                         &[image_available_semaphores[current_frame]],
@@ -375,6 +372,12 @@ fn main() {
                         &fences[current_frame],
                         &[PipelineStages::ColorAttachmentOutput],
                         |device, context| {
+                            let present_index = swapchain
+                                .acquire_next_image_index(
+                                    &image_available_semaphores[current_frame],
+                                )
+                                .expect("Could not acquire present image");
+
                             render_pass.begin(device, context, present_index);
                             graphics_pipeline.bind(device, context);
                             device.set_viewport_and_scissor(context, &swapchain);
@@ -445,6 +448,8 @@ fn main() {
                             });
                             //
                             //
+
+                            present_index
                         },
                     )
                     .expect("Could not record draw context");
