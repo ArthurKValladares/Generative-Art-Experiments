@@ -324,7 +324,6 @@ impl Painter {
                 println!("IMAGE: {:?}", id);
                 let (image, buffer) = Image::from_data_and_dims(
                     &device,
-                    &context,
                     color_data.width() as u32,
                     color_data.height() as u32,
                     easy_ash::as_u8_slice(&color_data.pixels),
@@ -344,7 +343,6 @@ impl Painter {
             ImageData::Font(font_data) => {
                 let (image, buffer) = Image::from_data_and_dims(
                     &device,
-                    &context,
                     font_data.width() as u32,
                     font_data.height() as u32,
                     easy_ash::as_u8_slice(&font_data.pixels),

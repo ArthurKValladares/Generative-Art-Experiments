@@ -79,8 +79,6 @@ fn main() {
         true,
     )
     .expect("Could not create swapchain");
-    let setup_context = Context::new(&device).expect("Could not create setup context");
-    let draw_context = Context::new(&device).expect("Could not create draw context");
 
     // Sync objects
     let setup_commands_reuse_fence = Fence::new(&device).expect("Could not create Fence");
@@ -102,33 +100,12 @@ fn main() {
         )
     };
 
-    setup_context
-        .record(
-            &device,
-            &[],
-            &[],
-            &setup_commands_reuse_fence,
-            &[],
-            |device, _context| {
-                swapchain
-                    .transition_depth_image_commands(&device, &setup_context)
-                    .expect("could not transition depth image");
-
-                let layout_transition_barrier = ImageMemoryBarrier::new(
-                    &swapchain.depth_image,
-                    AccessMask::DepthStencil,
-                    ImageLayout::Undefined,
-                    ImageLayout::DepthStencil,
-                );
-                device.pipeline_image_barrier(
-                    &setup_context,
-                    PipelineStages::BottomOfPipe,
-                    PipelineStages::LateFragmentTests,
-                    &[layout_transition_barrier],
-                );
-            },
-        )
-        .expect("Could not record setup context");
+    Context::immediate_submit(&device, None, &[], |device, context| {
+        swapchain
+            .transition_depth_image_commands(&device, &context)
+            .expect("could not transition depth image");
+    })
+    .expect("Could not record setup context");
 
     let mut render_pass = RenderPass::new(
         &device,
@@ -166,7 +143,6 @@ fn main() {
         .map(|image_data| {
             Image::from_data_and_dims(
                 &device,
-                &setup_context,
                 image_data.width,
                 image_data.height,
                 &image_data.bytes,
@@ -175,18 +151,12 @@ fn main() {
         })
         .collect::<Vec<_>>();
     // TODO: This can probably be much better, Image stuff in general
-    setup_context.record(
-        &device,
-        &[],
-        &[],
-        &setup_commands_reuse_fence,
-        &[],
-        |device, context| {
-            for (image, buffer) in &images_data {
-                image.create_commands(buffer, device, context);
-            }
-        },
-    );
+    Context::immediate_submit(&device, None, &[], |device, context| {
+        for (image, buffer) in &images_data {
+            image.create_commands(buffer, device, context);
+        }
+    })
+    .expect("Could not submit image creation commands");
 
     let index_buffer = Buffer::from_data(&device, BufferType::Index, &compiled_scene.indices)
         .expect("Could not create index buffer");
@@ -336,21 +306,17 @@ fn main() {
                     }
                 }
                 winit::event::WindowEvent::Resized(new_size) => {
-                    device.wait_idle().expect("Could not wait on GPU work");
-                    swapchain
-                        .resize(
-                            &entry,
-                            &device,
-                            &setup_context,
-                            &setup_commands_reuse_fence,
-                            new_size.width,
-                            new_size.height,
-                        )
-                        .expect("Could not resize swapchain");
-                    render_pass
-                        .resize(&device, &swapchain)
-                        .expect("Could not resize RenderPass");
-                    egui.resize(&device, &swapchain);
+                    Context::immediate_submit(&device, None, &[], |device, context| {
+                        device.wait_idle().expect("Could not wait on GPU work");
+                        swapchain
+                            .resize(&entry, &device, &context, new_size.width, new_size.height)
+                            .expect("Could not resize swapchain");
+                        render_pass
+                            .resize(&device, &swapchain)
+                            .expect("Could not resize RenderPass");
+                        egui.resize(&device, &swapchain);
+                    })
+                    .expect("Could not resize swapchain");
                 }
                 winit::event::WindowEvent::KeyboardInput { input, .. } => {
                     frame_context.keyboard_input = Some(input);
@@ -364,95 +330,98 @@ fn main() {
                 _ => {}
             },
             Event::RedrawRequested(_window_id) => {
-                let present_index = draw_context
-                    .record(
-                        &device,
-                        &[image_available_semaphores[current_frame]],
-                        &[render_finished_semaphores[current_frame]],
-                        &fences[current_frame],
-                        &[PipelineStages::ColorAttachmentOutput],
-                        |device, context| {
-                            let present_index = swapchain
-                                .acquire_next_image_index(
-                                    &image_available_semaphores[current_frame],
-                                )
-                                .expect("Could not acquire present image");
+                let present_index = Context::immediate_submit(
+                    &device,
+                    Some((
+                        &image_available_semaphores[current_frame],
+                        &render_finished_semaphores[current_frame],
+                    )),
+                    &[PipelineStages::ColorAttachmentOutput],
+                    |device, context| {
+                        let fence = &fences[current_frame];
+                        fence.wait(&device);
 
-                            render_pass.begin(device, context, present_index);
-                            graphics_pipeline.bind(device, context);
-                            device.set_viewport_and_scissor(context, &swapchain);
-                            device.bind_index_buffer(context, &index_buffer);
-                            // TODO: the index stuff here could be better, or better in general
-                            graphics_pipeline.bind_descriptor_set(
-                                device,
-                                context,
-                                &global_descriptor_set,
-                                0,
-                            );
-                            for mesh_draw in &compiled_scene.mesh_draws {
-                                {
-                                    device.push_constant(
-                                        context,
-                                        &graphics_pipeline,
-                                        &camera_push_constant,
-                                        easy_ash::as_u8_slice(&mesh_draw.transform_matrix),
-                                    );
+                        let present_index = swapchain
+                            .acquire_next_image_index(&image_available_semaphores[current_frame])
+                            .expect("Could not acquire present image");
 
-                                    // todo: Better abstraction for setting material data later
-                                    let material =
-                                        &compiled_scene.materials[mesh_draw.material_idx as usize];
-                                    let texture_index = material
-                                        .metallic_roughness
-                                        .texture_index
-                                        .unwrap_or(images_data.len() - 1)
-                                        as u32;
+                        fence.reset(&device);
 
-                                    let material_data = MaterialPushConstantData {
-                                        texture_index,
-                                        pad_1: 0,
-                                        pad_2: 0,
-                                        pad_3: 0,
-                                    };
-                                    device.push_constant(
-                                        context,
-                                        &graphics_pipeline,
-                                        &material_push_constant,
-                                        easy_ash::as_u8_slice(&material_data),
-                                    );
-                                }
-
-                                device.draw_indexed(
+                        render_pass.begin(device, context, present_index);
+                        graphics_pipeline.bind(device, context);
+                        device.set_viewport_and_scissor(context, &swapchain);
+                        device.bind_index_buffer(context, &index_buffer);
+                        // TODO: the index stuff here could be better, or better in general
+                        graphics_pipeline.bind_descriptor_set(
+                            device,
+                            context,
+                            &global_descriptor_set,
+                            0,
+                        );
+                        for mesh_draw in &compiled_scene.mesh_draws {
+                            {
+                                device.push_constant(
                                     context,
-                                    mesh_draw.num_indices,
-                                    mesh_draw.start_idx,
-                                    0,
+                                    &graphics_pipeline,
+                                    &camera_push_constant,
+                                    easy_ash::as_u8_slice(&mesh_draw.transform_matrix),
+                                );
+
+                                // todo: Better abstraction for setting material data later
+                                let material =
+                                    &compiled_scene.materials[mesh_draw.material_idx as usize];
+                                let texture_index = material
+                                    .metallic_roughness
+                                    .texture_index
+                                    .unwrap_or(images_data.len() - 1)
+                                    as u32;
+
+                                let material_data = MaterialPushConstantData {
+                                    texture_index,
+                                    pad_1: 0,
+                                    pad_2: 0,
+                                    pad_3: 0,
+                                };
+                                device.push_constant(
+                                    context,
+                                    &graphics_pipeline,
+                                    &material_push_constant,
+                                    easy_ash::as_u8_slice(&material_data),
                                 );
                             }
-                            render_pass.end(device, context);
 
-                            // Egui UI pass
-                            //
-                            egui.run(&device, context, present_index, &window, |context| {
-                                egui::SidePanel::left("Test Panel").show(context, |ui| {
-                                    ui.heading("My egui Application");
-                                    ui.horizontal(|ui| {
-                                        ui.label("Your name: ");
-                                        ui.text_edit_singleline(&mut name);
-                                    });
-                                    ui.add(egui::Slider::new(&mut age, 0..=120).text("age"));
-                                    if ui.button("Click each year").clicked() {
-                                        age += 1;
-                                    }
-                                    ui.label(format!("Hello '{}', age {}", name, age));
+                            device.draw_indexed(
+                                context,
+                                mesh_draw.num_indices,
+                                mesh_draw.start_idx,
+                                0,
+                            );
+                        }
+                        render_pass.end(device, context);
+
+                        // Egui UI pass
+                        //
+                        egui.run(&device, context, present_index, &window, |context| {
+                            egui::SidePanel::left("Test Panel").show(context, |ui| {
+                                ui.heading("My egui Application");
+                                ui.horizontal(|ui| {
+                                    ui.label("Your name: ");
+                                    ui.text_edit_singleline(&mut name);
                                 });
+                                ui.add(egui::Slider::new(&mut age, 0..=120).text("age"));
+                                if ui.button("Click each year").clicked() {
+                                    age += 1;
+                                }
+                                ui.label(format!("Hello '{}', age {}", name, age));
                             });
-                            //
-                            //
+                        });
+                        //
+                        //
 
-                            present_index
-                        },
-                    )
-                    .expect("Could not record draw context");
+                        present_index
+                    },
+                )
+                .expect("Could not record draw context");
 
                 swapchain
                     .present(
