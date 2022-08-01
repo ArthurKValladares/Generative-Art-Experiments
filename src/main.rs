@@ -100,7 +100,7 @@ fn main() {
         )
     };
 
-    Context::immediate_submit(&device, None, &[], |device, context| {
+    Context::immediate_submit(&device, None, None, &[], |device, context| {
         swapchain
             .transition_depth_image_commands(&device, &context)
             .expect("could not transition depth image");
@@ -151,7 +151,7 @@ fn main() {
         })
         .collect::<Vec<_>>();
     // TODO: This can probably be much better, Image stuff in general
-    Context::immediate_submit(&device, None, &[], |device, context| {
+    Context::immediate_submit(&device, None, None, &[], |device, context| {
         for (image, buffer) in &images_data {
             image.create_commands(buffer, device, context);
         }
@@ -306,7 +306,7 @@ fn main() {
                     }
                 }
                 winit::event::WindowEvent::Resized(new_size) => {
-                    Context::immediate_submit(&device, None, &[], |device, context| {
+                    Context::immediate_submit(&device, None, None, &[], |device, context| {
                         device.wait_idle().expect("Could not wait on GPU work");
                         swapchain
                             .resize(&entry, &device, &context, new_size.width, new_size.height)
@@ -330,15 +330,17 @@ fn main() {
                 _ => {}
             },
             Event::RedrawRequested(_window_id) => {
+                let fence = &fences[current_frame];
+
                 let present_index = Context::immediate_submit(
                     &device,
                     Some((
                         &image_available_semaphores[current_frame],
                         &render_finished_semaphores[current_frame],
                     )),
+                    Some(fence),
                     &[PipelineStages::ColorAttachmentOutput],
                     |device, context| {
-                        let fence = &fences[current_frame];
                         fence.wait(&device);
 
                         let present_index = swapchain
